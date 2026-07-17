@@ -14,7 +14,10 @@ class FloatingBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color.fromRGBO(209, 41, 58, 1);
+    const activeBackgroundColor = Color(0xFFFFF0EE);
+    const inactiveIconColor = Color(0xFF7A6F6C);
+    const activeIconColor = Color(0xFF5C4E4B);
+    const badgeColor = Color(0xFF5C4E4B);
 
     const items = [
       _BottomBarItem(
@@ -31,6 +34,7 @@ class FloatingBottomBar extends StatelessWidget {
         icon: Icons.location_pin,
         activeIcon: Icons.location_pin,
         label: 'Workshop',
+        isCenter: true,
       ),
       _BottomBarItem(
         icon: Icons.newspaper_outlined,
@@ -45,7 +49,7 @@ class FloatingBottomBar extends StatelessWidget {
     ];
 
     return Container(
-      height: 60,
+      height: 80,
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -69,8 +73,12 @@ class FloatingBottomBar extends StatelessWidget {
             icon: item.icon,
             activeIcon: item.activeIcon,
             label: item.label,
-            color: primaryColor,
+            activeBackgroundColor: activeBackgroundColor,
+            activeIconColor: activeIconColor,
+            inactiveIconColor: inactiveIconColor,
+            badgeColor: badgeColor,
             badgeCount: badgeCount,
+            isCenter: item.isCenter,
           );
         }),
       ),
@@ -82,20 +90,24 @@ class FloatingBottomBar extends StatelessWidget {
     required IconData icon,
     required IconData activeIcon,
     required String label,
-    required Color color,
+    required Color activeBackgroundColor,
+    required Color activeIconColor,
+    required Color inactiveIconColor,
+    required Color badgeColor,
+    required bool isCenter,
     int badgeCount = 0,
   }) {
     final bool isActive = currentIndex == index;
 
     Widget iconWidget = Icon(
       isActive ? activeIcon : icon,
-      color: isActive ? color : const Color(0xFF7A6F6C),
-      size: 24,
+      color: isActive ? activeIconColor : inactiveIconColor,
+      size: isCenter ? 30 : 22,
     );
 
     if (badgeCount > 0) {
       iconWidget = Badge(
-        backgroundColor: color,
+        backgroundColor: badgeColor,
         label: Text(
           '$badgeCount',
           style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold),
@@ -103,6 +115,29 @@ class FloatingBottomBar extends StatelessWidget {
         child: iconWidget,
       );
     }
+
+    final iconContainer = AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      width: isCenter ? (isActive ? 62 : 58) : 42,
+      height: isCenter ? (isActive ? 62 : 58) : 36,
+      decoration: BoxDecoration(
+        color: isActive ? activeBackgroundColor : Colors.transparent,
+        shape: isCenter ? BoxShape.circle : BoxShape.rectangle,
+        borderRadius: isCenter ? null : BorderRadius.circular(12),
+        boxShadow: isCenter
+            ? [
+                const BoxShadow(
+                  color: Color.fromARGB(35, 0, 0, 0),
+                  blurRadius: 8,
+                  offset: Offset(0, 3),
+                ),
+              ]
+            : null,
+      ),
+      alignment: Alignment.center,
+      child: iconWidget,
+    );
 
     return Expanded(
       child: InkWell(
@@ -112,14 +147,17 @@ class FloatingBottomBar extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            iconWidget,
-            const SizedBox(height: 4),
+            if (isCenter)
+              Transform.translate(offset: const Offset(0, -6), child: iconContainer)
+            else
+              iconContainer,
+            SizedBox(height: isCenter ? 0 : 4),
             Text(
               label,
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                color: isActive ? color : const Color(0xFF7A6F6C),
+                color: isActive ? activeIconColor : inactiveIconColor,
               ),
             ),
           ],
@@ -134,9 +172,11 @@ class _BottomBarItem {
     required this.icon,
     required this.activeIcon,
     required this.label,
+    this.isCenter = false,
   });
 
   final IconData icon;
   final IconData activeIcon;
   final String label;
+  final bool isCenter;
 }

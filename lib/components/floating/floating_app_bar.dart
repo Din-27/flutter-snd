@@ -6,7 +6,7 @@ class FloatingAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   const FloatingAppBar({super.key, this.controller, this.onFilterPressed});
 
-  static const _badgeColor = Color.fromRGBO(209, 41, 58, 1);
+  static const _baseColor = Color(0xFFFFF0EE);
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +36,7 @@ class FloatingAppBar extends StatelessWidget implements PreferredSizeWidget {
               clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                color: const Color.fromARGB(255, 196, 39, 39),
+                color: _baseColor,
               ),
               padding: const EdgeInsets.all(8),
               child: Image.asset(
@@ -54,7 +54,7 @@ class FloatingAppBar extends StatelessWidget implements PreferredSizeWidget {
                 ),
                 child: notif > 0
                     ? const Badge(
-                        backgroundColor: _badgeColor,
+                        backgroundColor: _baseColor,
                         smallSize: 8,
                         child: Icon(Icons.notifications_outlined, size: 20),
                       )

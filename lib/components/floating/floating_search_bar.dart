@@ -17,7 +17,7 @@ class FloatingSearchBar extends StatelessWidget {
     return Container(
       height: 56,
       decoration: BoxDecoration(
-        color: const Color(0xFFEBE6E4),
+        color: const Color(0xFFFFF0EE),
         borderRadius: BorderRadius.circular(30),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -25,7 +25,7 @@ class FloatingSearchBar extends StatelessWidget {
         children: [
           const Icon(
             Icons.speed_outlined,
-            color: Color.fromRGBO(209, 41, 58, 1),
+            color: Color(0xFFFFF0EE),
             size: 24,
           ),
           const SizedBox(width: 12),
@@ -33,7 +33,7 @@ class FloatingSearchBar extends StatelessWidget {
             child: TextField(
               controller: controller,
               onChanged: onChanged,
-              cursorColor: const Color.fromRGBO(209, 41, 58, 1),
+              cursorColor: const Color(0xFFFFF0EE),
               decoration: const InputDecoration(
                 hintText: 'Find a workshop near you...',
                 hintStyle: TextStyle(
@@ -50,7 +50,7 @@ class FloatingSearchBar extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: const BoxDecoration(
-                color: Color(0xFFFFE3E1),
+                color: Color(0xFFFFF0EE),
                 shape: BoxShape.circle,
               ),
               child: const Icon(

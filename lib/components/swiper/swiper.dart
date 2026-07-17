@@ -1,140 +1,286 @@
-import 'dart:async';
+import 'package:card_swiper/card_swiper.dart';
 import 'package:flutter/material.dart';
+import 'package:shop_and_drive/models/swiper_item.dart';
+export 'package:shop_and_drive/models/swiper_item.dart';
 
-class SumbawaBannerSwiper extends StatefulWidget {
-  const SumbawaBannerSwiper({super.key});
+enum SwiperContentType { banner, product }
 
-  @override
-  State<SumbawaBannerSwiper> createState() => _SumbawaBannerSwiperState();
-}
+class AppSwiper extends StatelessWidget {
+  const AppSwiper.banner({
+    super.key,
+    required this.banners,
+    this.viewportFraction = 0.9,
+    this.height = 170,
+    this.autoPlayDuration = const Duration(seconds: 3),
+  })  : products = const [],
+        contentType = SwiperContentType.banner;
 
-class _SumbawaBannerSwiperState extends State<SumbawaBannerSwiper> {
-  final PageController _pageController = PageController(viewportFraction: 0.85);
-  int _currentPage = 0;
-  Timer? _autoSwiperTimer;
+  const AppSwiper.product({
+    super.key,
+    required this.products,
+    this.viewportFraction = 0.84,
+    this.height = 220,
+    this.autoPlayDuration = const Duration(seconds: 3),
+  })  : banners = const [],
+        contentType = SwiperContentType.product;
 
-  final List<String> _bannerImages = [
-    'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?q=80&w=600&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1513151233558-d860c5398176?q=80&w=600&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=600&auto=format&fit=crop',
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _autoSwiperTimer = Timer.periodic(const Duration(seconds: 3), (
-      Timer timer,
-    ) {
-      if (_currentPage < _bannerImages.length - 1) {
-        _currentPage++;
-      } else {
-        _currentPage = 0;
-      }
-
-      if (_pageController.hasClients) {
-        _pageController.animateToPage(
-          _currentPage,
-          duration: const Duration(milliseconds: 350),
-          curve: Curves.easeInOut,
-        );
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _autoSwiperTimer?.cancel();
-    _pageController.dispose();
-    super.dispose();
-  }
+  final List<BannerSwiperItem> banners;
+  final List<ProductSwiperItem> products;
+  final SwiperContentType contentType;
+  final double viewportFraction;
+  final double height;
+  final Duration autoPlayDuration;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          height: 180,
-          child: PageView.builder(
-            scrollDirection: Axis.horizontal,
-            physics: const AlwaysScrollableScrollPhysics(
-              parent: ClampingScrollPhysics(),
-            ),
-            controller: _pageController,
-            itemCount: _bannerImages.length,
-            onPageChanged: (int page) {
-              setState(() {
-                _currentPage = page;
-              });
-            },
-            itemBuilder: (context, index) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: Container(
-                  clipBehavior: Clip.antiAlias,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color.fromARGB(26, 0, 0, 0),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Image.network(
-                    _bannerImages[index],
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Container(
-                        color: Colors.grey[200],
-                        child: const Center(
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Color.fromRGBO(209, 41, 58, 1),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: const Color(0xFFF0F0F0),
-                        child: const Center(
-                          child: Icon(Icons.broken_image_outlined, size: 30),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              );
-            },
+    final itemCount = contentType == SwiperContentType.banner
+        ? banners.length
+        : products.length;
+
+    if (itemCount == 0) {
+      return const SizedBox.shrink();
+    }
+
+    return SizedBox(
+      height: height,
+      child: Swiper(
+        itemCount: itemCount,
+        viewportFraction: viewportFraction,
+        scale: 0.94,
+        autoplay: itemCount > 1,
+        autoplayDelay: autoPlayDuration.inMilliseconds,
+        duration: 350,
+        physics: const ClampingScrollPhysics(),
+        pagination: const SwiperPagination(
+          alignment: Alignment.bottomCenter,
+          margin: EdgeInsets.only(bottom: 8),
+          builder: DotSwiperPaginationBuilder(
+            color: Color(0xFFD6D6D6),
+            activeColor: Color(0xFFFFF0EE),
+            size: 8,
+            activeSize: 8,
+            space: 4,
           ),
         ),
+        itemBuilder: (context, index) {
+          if (contentType == SwiperContentType.banner) {
+            return _BannerSwiperCard(item: banners[index]);
+          }
 
-        const SizedBox(height: 16),
+          return _ProductSwiperCard(item: products[index]);
+        },
+      ),
+    );
+  }
+}
 
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(_bannerImages.length, (index) {
-            final isActive = _currentPage == index;
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              height: 8,
-              width: isActive ? 24 : 8,
-              decoration: BoxDecoration(
-                color: isActive
-                    ? const Color.fromRGBO(209, 41, 58, 1)
-                    : Colors.grey[300],
-                borderRadius: BorderRadius.circular(4),
-              ),
-            );
-          }),
+class _BannerSwiperCard extends StatelessWidget {
+  const _BannerSwiperCard({required this.item});
+
+  final BannerSwiperItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          color: Colors.white,
+          boxShadow: const [
+            BoxShadow(
+              color: Color.fromARGB(22, 0, 0, 0),
+              blurRadius: 8,
+              offset: Offset(0, 4),
+            ),
+          ],
         ),
-      ],
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            _NetworkImageWithFallback(imageUrl: item.imageUrl),
+            if (item.title != null || item.subtitle != null)
+              Positioned(
+                left: 14,
+                right: 14,
+                bottom: 14,
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color.fromARGB(170, 0, 0, 0),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (item.title != null)
+                        Text(
+                          item.title!,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      if (item.subtitle != null)
+                        Text(
+                          item.subtitle!,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProductSwiperCard extends StatelessWidget {
+  const _ProductSwiperCard({required this.item});
+
+  final ProductSwiperItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          color: Colors.white,
+          boxShadow: const [
+            BoxShadow(
+              color: Color.fromARGB(22, 0, 0, 0),
+              blurRadius: 8,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 3,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  _NetworkImageWithFallback(imageUrl: item.imageUrl),
+                  Positioned(
+                    top: 12,
+                    left: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF0EE),
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                      child: Text(
+                        item.category,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      item.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF383230),
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.star_rounded,
+                          size: 16,
+                          color: Color(0xFFFFC83D),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          item.rating.toStringAsFixed(1),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF5F5654),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      item.price,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF383230),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NetworkImageWithFallback extends StatelessWidget {
+  const _NetworkImageWithFallback({required this.imageUrl});
+
+  final String imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.network(
+      imageUrl,
+      fit: BoxFit.cover,
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return Container(
+          color: Colors.grey[200],
+          child: const Center(
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFF0EE)),
+            ),
+          ),
+        );
+      },
+      errorBuilder: (context, error, stackTrace) {
+        return Container(
+          color: const Color(0xFFF0F0F0),
+          child: const Center(
+            child: Icon(Icons.broken_image_outlined, size: 30),
+          ),
+        );
+      },
     );
   }
 }
