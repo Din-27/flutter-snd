@@ -1,33 +1,65 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shop_and_drive/core/di/app_services.dart';
 import 'package:shop_and_drive/features/product/data/product_repository.dart';
 import 'package:shop_and_drive/models/catalog_product.dart';
 
-final productRepositoryProvider = Provider<ProductRepository>((ref) {
-  return AppServices.productRepository;
-});
+enum ProductStatus { initial, loading, success, failure }
 
-final productListProvider =
-    StateNotifierProvider.autoDispose<ProductListController, AsyncValue<List<CatalogProduct>>>(
-  (ref) {
-    final controller = ProductListController(ref.read(productRepositoryProvider));
-    controller.loadProducts();
-    return controller;
-  },
-);
+class ProductState {
+  const ProductState({
+    this.status = ProductStatus.initial,
+    this.products = const <CatalogProduct>[],
+    this.errorMessage,
+  });
 
-class ProductListController extends StateNotifier<AsyncValue<List<CatalogProduct>>> {
-  ProductListController(this._productRepository) : super(const AsyncValue.loading());
+  final ProductStatus status;
+  final List<CatalogProduct> products;
+  final String? errorMessage;
+
+  bool get isLoading => status == ProductStatus.loading;
+
+  ProductState copyWith({
+    ProductStatus? status,
+    List<CatalogProduct>? products,
+    String? errorMessage,
+  }) {
+    return ProductState(
+      status: status ?? this.status,
+      products: products ?? this.products,
+      errorMessage: errorMessage,
+    );
+  }
+}
+
+class ProductCubit extends Cubit<ProductState> {
+  ProductCubit(this._productRepository) : super(const ProductState());
 
   final ProductRepository _productRepository;
 
   Future<void> loadProducts() async {
-    state = const AsyncValue.loading();
+    emit(state.copyWith(status: ProductStatus.loading, errorMessage: null));
     final result = await _productRepository.fetchProducts();
 
-    state = result.when(
-      success: (products) => AsyncValue.data(products),
-      failure: (message) => AsyncValue.error(message, StackTrace.current),
+    result.when(
+      success: (products) {
+        emit(
+          state.copyWith(
+            status: ProductStatus.success,
+            products: products,
+            errorMessage: null,
+          ),
+        );
+      },
+      failure: (message) {
+        emit(
+          state.copyWith(
+            status: ProductStatus.failure,
+            errorMessage: message,
+          ),
+        );
+      },
     );
   }
 }
+
+ProductRepository getProductRepository() => AppServices.productRepository;

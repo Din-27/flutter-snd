@@ -1,45 +1,71 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shop_and_drive/core/di/app_services.dart';
-import 'package:shop_and_drive/core/network/api_result.dart';
 import 'package:shop_and_drive/features/auth/data/auth_repository.dart';
 import 'package:shop_and_drive/features/auth/domain/models/auth_session.dart';
 
-final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  return AppServices.authRepository;
-});
+enum AuthStatus { initial, loading, success, failure }
 
-final loginControllerProvider =
-    StateNotifierProvider.autoDispose<LoginController, AsyncValue<AuthSession?>>((ref) {
-      return LoginController(ref.read(authRepositoryProvider));
-    });
+class AuthState {
+  const AuthState({
+    this.status = AuthStatus.initial,
+    this.session,
+    this.errorMessage,
+  });
 
-final registerControllerProvider =
-    StateNotifierProvider.autoDispose<RegisterController, AsyncValue<AuthSession?>>((ref) {
-      return RegisterController(ref.read(authRepositoryProvider));
-    });
+  final AuthStatus status;
+  final AuthSession? session;
+  final String? errorMessage;
 
-class LoginController extends StateNotifier<AsyncValue<AuthSession?>> {
-  LoginController(this._authRepository) : super(const AsyncValue.data(null));
+  bool get isLoading => status == AuthStatus.loading;
 
-  final AuthRepository _authRepository;
-
-  Future<void> login({required String email, required String password}) async {
-    state = const AsyncValue.loading();
-
-    final result = await _authRepository.login(email: email, password: password);
-
-    state = result.when(
-      success: (session) {
-        AppServices.sessionGuard.clearUnauthorized();
-        return AsyncValue.data(session);
-      },
-      failure: (message) => AsyncValue.error(message, StackTrace.current),
+  AuthState copyWith({
+    AuthStatus? status,
+    AuthSession? session,
+    String? errorMessage,
+  }) {
+    return AuthState(
+      status: status ?? this.status,
+      session: session ?? this.session,
+      errorMessage: errorMessage,
     );
   }
 }
 
-class RegisterController extends StateNotifier<AsyncValue<AuthSession?>> {
-  RegisterController(this._authRepository) : super(const AsyncValue.data(null));
+class LoginCubit extends Cubit<AuthState> {
+  LoginCubit(this._authRepository) : super(const AuthState());
+
+  final AuthRepository _authRepository;
+
+  Future<void> login({required String email, required String password}) async {
+    emit(state.copyWith(status: AuthStatus.loading, errorMessage: null));
+
+    final result = await _authRepository.login(email: email, password: password);
+
+    result.when(
+      success: (session) {
+        AppServices.sessionGuard.clearUnauthorized();
+        emit(
+          state.copyWith(
+            status: AuthStatus.success,
+            session: session,
+            errorMessage: null,
+          ),
+        );
+      },
+      failure: (message) {
+        emit(
+          state.copyWith(
+            status: AuthStatus.failure,
+            errorMessage: message,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class RegisterCubit extends Cubit<AuthState> {
+  RegisterCubit(this._authRepository) : super(const AuthState());
 
   final AuthRepository _authRepository;
 
@@ -48,7 +74,7 @@ class RegisterController extends StateNotifier<AsyncValue<AuthSession?>> {
     required String email,
     required String password,
   }) async {
-    state = const AsyncValue.loading();
+    emit(state.copyWith(status: AuthStatus.loading, errorMessage: null));
 
     final result = await _authRepository.register(
       name: name,
@@ -56,12 +82,25 @@ class RegisterController extends StateNotifier<AsyncValue<AuthSession?>> {
       password: password,
     );
 
-    state = result.when(
+    result.when(
       success: (session) {
         AppServices.sessionGuard.clearUnauthorized();
-        return AsyncValue.data(session);
+        emit(
+          state.copyWith(
+            status: AuthStatus.success,
+            session: session,
+            errorMessage: null,
+          ),
+        );
       },
-      failure: (message) => AsyncValue.error(message, StackTrace.current),
+      failure: (message) {
+        emit(
+          state.copyWith(
+            status: AuthStatus.failure,
+            errorMessage: message,
+          ),
+        );
+      },
     );
   }
 }

@@ -1,19 +1,38 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shop_and_drive/core/di/app_services.dart';
 import 'package:shop_and_drive/features/payment/data/payment_repository.dart';
 import 'package:shop_and_drive/features/payment/domain/models/payment_result.dart';
 
-final paymentRepositoryProvider = Provider<PaymentRepository>((ref) {
-  return AppServices.paymentRepository;
-});
+enum PaymentStatus { initial, loading, success, failure }
 
-final paymentControllerProvider =
-    StateNotifierProvider.autoDispose<PaymentController, AsyncValue<PaymentResult?>>((ref) {
-      return PaymentController(ref.read(paymentRepositoryProvider));
-    });
+class PaymentState {
+  const PaymentState({
+    this.status = PaymentStatus.initial,
+    this.payment,
+    this.errorMessage,
+  });
 
-class PaymentController extends StateNotifier<AsyncValue<PaymentResult?>> {
-  PaymentController(this._paymentRepository) : super(const AsyncValue.data(null));
+  final PaymentStatus status;
+  final PaymentResult? payment;
+  final String? errorMessage;
+
+  bool get isLoading => status == PaymentStatus.loading;
+
+  PaymentState copyWith({
+    PaymentStatus? status,
+    PaymentResult? payment,
+    String? errorMessage,
+  }) {
+    return PaymentState(
+      status: status ?? this.status,
+      payment: payment ?? this.payment,
+      errorMessage: errorMessage,
+    );
+  }
+}
+
+class PaymentCubit extends Cubit<PaymentState> {
+  PaymentCubit(this._paymentRepository) : super(const PaymentState());
 
   final PaymentRepository _paymentRepository;
 
@@ -22,7 +41,7 @@ class PaymentController extends StateNotifier<AsyncValue<PaymentResult?>> {
     required int amount,
     required String gateway,
   }) async {
-    state = const AsyncValue.loading();
+    emit(state.copyWith(status: PaymentStatus.loading, errorMessage: null));
 
     final result = await _paymentRepository.createPayment(
       productName: productName,
@@ -30,9 +49,26 @@ class PaymentController extends StateNotifier<AsyncValue<PaymentResult?>> {
       gateway: gateway,
     );
 
-    state = result.when(
-      success: (payment) => AsyncValue.data(payment),
-      failure: (message) => AsyncValue.error(message, StackTrace.current),
+    result.when(
+      success: (payment) {
+        emit(
+          state.copyWith(
+            status: PaymentStatus.success,
+            payment: payment,
+            errorMessage: null,
+          ),
+        );
+      },
+      failure: (message) {
+        emit(
+          state.copyWith(
+            status: PaymentStatus.failure,
+            errorMessage: message,
+          ),
+        );
+      },
     );
   }
 }
+
+PaymentRepository getPaymentRepository() => AppServices.paymentRepository;

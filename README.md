@@ -1,12 +1,12 @@
 # Shop & Drive
 
-Flutter mobile app untuk kebutuhan e-commerce otomotif dan monitoring perjalanan, dengan pendekatan arsitektur modular, komponen reusable, state management Riverpod, serta fondasi network layer production-ready (timeout, retry, dan global unauthorized handler).
+Flutter mobile app untuk kebutuhan e-commerce otomotif dan monitoring perjalanan, dengan pendekatan arsitektur modular, komponen reusable, state management BLoC Cubit, serta fondasi network layer production-ready (timeout, retry, dan global unauthorized handler).
 
 ## Highlights
 
 - UI modern dengan komponen terpisah (floating app bar, bottom bar, search bar, card product, promo, notification tile, dll)
 - Routing terpusat memakai `go_router`
-- State management memakai `flutter_riverpod`
+- State management memakai `flutter_bloc` (Cubit)
 - Dynamic swiper component (`card_swiper`) yang bisa dipakai untuk banner dan product card
 - Monitoring perjalanan dengan `flutter_map` (OpenStreetMap, gratis)
 - Template data layer + network policy:
@@ -18,7 +18,7 @@ Flutter mobile app untuk kebutuhan e-commerce otomotif dan monitoring perjalanan
 
 - Flutter (Dart SDK `^3.12.2`)
 - `go_router`
-- `flutter_riverpod`
+- `flutter_bloc` (Cubit)
 - `card_swiper`
 - `flutter_map` + `latlong2`
 - `http`
@@ -39,7 +39,7 @@ dependencies:
 	latlong2: ^0.9.1
 	http: ^1.3.0
 	shared_preferences: ^2.5.3
-	flutter_riverpod: ^2.6.1
+	flutter_bloc: ^9.1.1
 ```
 
 ## Project Structure
@@ -111,7 +111,7 @@ lib/
 ### 1. Entry Point
 
 - [lib/main.dart](lib/main.dart)
-	- App dibungkus `ProviderScope` untuk mengaktifkan Riverpod
+	- App entry langsung `runApp(const MyApp())`
 	- Tema global via `AppTheme.light()`
 	- Router global via `MaterialApp.router`
 
@@ -154,7 +154,7 @@ Setiap feature mengikuti pemisahan:
 
 - `data` -> repository/API source
 - `domain` -> model/domain entities
-- `presentation/providers` -> state controller Riverpod
+- `presentation/providers` -> state controller Cubit
 
 Contoh:
 - Auth: [lib/features/auth/data/auth_repository.dart](lib/features/auth/data/auth_repository.dart), [lib/features/auth/presentation/providers/auth_providers.dart](lib/features/auth/presentation/providers/auth_providers.dart)
@@ -167,24 +167,24 @@ Contoh:
 - `components/` untuk reusable UI blocks
 - `models/` untuk model presentasi lintas screen/component
 
-## State Management (Riverpod)
+## State Management (BLoC Cubit)
 
-Implementasi sekarang memakai `StateNotifier` + `AsyncValue`:
+Implementasi sekarang memakai `Cubit` + immutable state:
 
 - Auth controller:
-	- `LoginController`
-	- `RegisterController`
+	- `LoginCubit`
+	- `RegisterCubit`
 	- File: [lib/features/auth/presentation/providers/auth_providers.dart](lib/features/auth/presentation/providers/auth_providers.dart)
 
 - Product controller:
-	- `ProductListController`
+	- `ProductCubit`
 	- File: [lib/features/product/presentation/providers/product_providers.dart](lib/features/product/presentation/providers/product_providers.dart)
 
 - Payment controller:
-	- `PaymentController`
+	- `PaymentCubit`
 	- File: [lib/features/payment/presentation/providers/payment_providers.dart](lib/features/payment/presentation/providers/payment_providers.dart)
 
-Screen yang sudah terhubung provider:
+Screen yang sudah terhubung Cubit:
 - [lib/screens/login_screen.dart](lib/screens/login_screen.dart)
 - [lib/screens/register_screen.dart](lib/screens/register_screen.dart)
 - [lib/screens/product_screen.dart](lib/screens/product_screen.dart)

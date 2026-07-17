@@ -1,25 +1,40 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shop_and_drive/components/layout/app_page_scaffold.dart';
 import 'package:shop_and_drive/components/loading/product_skeleton.dart';
 import 'package:shop_and_drive/components/product/product_grid_card.dart';
 import 'package:shop_and_drive/components/product/product_list_card.dart';
+import 'package:shop_and_drive/core/di/app_services.dart';
 import 'package:shop_and_drive/features/product/presentation/providers/product_providers.dart';
 import 'package:shop_and_drive/models/catalog_product.dart';
 
-class ProductScreen extends ConsumerStatefulWidget {
+class ProductScreen extends StatefulWidget {
   const ProductScreen({super.key});
 
   @override
-  ConsumerState<ProductScreen> createState() => _ProductScreenState();
+  State<ProductScreen> createState() => _ProductScreenState();
 }
 
-class _ProductScreenState extends ConsumerState<ProductScreen> {
+class _ProductScreenState extends State<ProductScreen> {
   static const _chips = ['Semua', 'Sparepart', 'Oli Mesin', 'Aksesoris'];
 
   String _selectedChip = _chips.first;
   bool _isGridLayout = true;
+  late final ProductCubit _productCubit;
+
+  @override
+  void initState() {
+    super.initState();
+    _productCubit = ProductCubit(AppServices.productRepository);
+    _productCubit.loadProducts();
+  }
+
+  @override
+  void dispose() {
+    _productCubit.close();
+    super.dispose();
+  }
 
   List<CatalogProduct> _filteredProducts(List<CatalogProduct> source) {
     if (_selectedChip == 'Semua') {
@@ -51,95 +66,99 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<AsyncValue<List<CatalogProduct>>>(productListProvider, (previous, next) {
-      next.whenOrNull(
-        error: (error, _) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(error.toString())),
-          );
+    return BlocProvider.value(
+      value: _productCubit,
+      child: BlocListener<ProductCubit, ProductState>(
+        listener: (context, state) {
+          if (state.status == ProductStatus.failure && state.errorMessage != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.errorMessage!)),
+            );
+          }
         },
-      );
-    });
+        child: BlocBuilder<ProductCubit, ProductState>(
+          builder: (context, productState) {
+            final filteredProducts = _filteredProducts(productState.products);
 
-    final productState = ref.watch(productListProvider);
-    final products = productState.valueOrNull ?? const <CatalogProduct>[];
-    final filteredProducts = _filteredProducts(products);
-
-    return AppPageScaffold(
-      title: 'Produk',
-      currentIndex: 1,
-      actions: [
-          IconButton(
-            onPressed: () {
-              setState(() {
-                _isGridLayout = !_isGridLayout;
-              });
-            },
-            icon: Icon(_isGridLayout ? Icons.view_stream_rounded : Icons.grid_view_rounded),
-          ),
-        ],
-      body: Column(
-        children: [
-          SizedBox(
-            height: 56,
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              scrollDirection: Axis.horizontal,
-              itemBuilder: (context, index) {
-                final chip = _chips[index];
-                final selected = chip == _selectedChip;
-                return ChoiceChip(
-                  label: Text(chip),
-                  selected: selected,
-                  onSelected: (_) {
+            return AppPageScaffold(
+              title: 'Produk',
+              currentIndex: 1,
+              actions: [
+                IconButton(
+                  onPressed: () {
                     setState(() {
-                      _selectedChip = chip;
+                      _isGridLayout = !_isGridLayout;
                     });
                   },
-                  selectedColor: const Color(0xFFFFF0EE),
-                );
-              },
-              separatorBuilder: (_, _) => const SizedBox(width: 8),
-              itemCount: _chips.length,
-            ),
-          ),
-          Expanded(
-            child: productState.isLoading
-              ? const ProductSkeleton()
-              : _isGridLayout
-                ? GridView.builder(
-                    padding: const EdgeInsets.fromLTRB(14, 8, 14, 20),
-                    itemCount: filteredProducts.length,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10,
-                      childAspectRatio: 0.72,
+                  icon: Icon(_isGridLayout ? Icons.view_stream_rounded : Icons.grid_view_rounded),
+                ),
+              ],
+              body: Column(
+                children: [
+                  SizedBox(
+                    height: 56,
+                    child: ListView.separated(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      scrollDirection: Axis.horizontal,
+                      itemBuilder: (context, index) {
+                        final chip = _chips[index];
+                        final selected = chip == _selectedChip;
+                        return ChoiceChip(
+                          label: Text(chip),
+                          selected: selected,
+                          onSelected: (_) {
+                            setState(() {
+                              _selectedChip = chip;
+                            });
+                          },
+                          selectedColor: const Color(0xFFFFF0EE),
+                        );
+                      },
+                      separatorBuilder: (_, _) => const SizedBox(width: 8),
+                      itemCount: _chips.length,
                     ),
-                    itemBuilder: (context, index) {
-                      final product = filteredProducts[index];
-                      return ProductGridCard(
-                        product: product,
-                        priceText: _formatRupiah(product.price),
-                        onCheckout: () => _openCheckout(product),
-                      );
-                    },
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(14, 8, 14, 20),
-                    itemCount: filteredProducts.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 10),
-                    itemBuilder: (context, index) {
-                      final product = filteredProducts[index];
-                      return ProductListCard(
-                        product: product,
-                        priceText: _formatRupiah(product.price),
-                        onCheckout: () => _openCheckout(product),
-                      );
-                    },
                   ),
-          ),
-        ],
+                  Expanded(
+                    child: productState.isLoading
+                        ? const ProductSkeleton()
+                        : _isGridLayout
+                            ? GridView.builder(
+                                padding: const EdgeInsets.fromLTRB(14, 8, 14, 20),
+                                itemCount: filteredProducts.length,
+                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  crossAxisSpacing: 10,
+                                  mainAxisSpacing: 10,
+                                  childAspectRatio: 0.72,
+                                ),
+                                itemBuilder: (context, index) {
+                                  final product = filteredProducts[index];
+                                  return ProductGridCard(
+                                    product: product,
+                                    priceText: _formatRupiah(product.price),
+                                    onCheckout: () => _openCheckout(product),
+                                  );
+                                },
+                              )
+                            : ListView.separated(
+                                padding: const EdgeInsets.fromLTRB(14, 8, 14, 20),
+                                itemCount: filteredProducts.length,
+                                separatorBuilder: (_, _) => const SizedBox(height: 10),
+                                itemBuilder: (context, index) {
+                                  final product = filteredProducts[index];
+                                  return ProductListCard(
+                                    product: product,
+                                    priceText: _formatRupiah(product.price),
+                                    onCheckout: () => _openCheckout(product),
+                                  );
+                                },
+                              ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
