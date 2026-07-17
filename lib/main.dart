@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import './routers/app_router.dart';
+import 'package:shop_and_drive/routers/app_router.dart';
 
 void main() {
   runApp(const MyApp());

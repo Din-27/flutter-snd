@@ -9,12 +9,10 @@ class SumbawaBannerSwiper extends StatefulWidget {
 }
 
 class _SumbawaBannerSwiperState extends State<SumbawaBannerSwiper> {
-  // 1. Controller PageView dengan viewportFraction agar banner berikutnya sedikit mengintip
   final PageController _pageController = PageController(viewportFraction: 0.85);
   int _currentPage = 0;
   Timer? _autoSwiperTimer;
 
-  // Data Dummy Gambar Banner (Ganti sesuai URL atau Asset lokal Anda)
   final List<String> _bannerImages = [
     'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?q=80&w=600&auto=format&fit=crop',
     'https://images.unsplash.com/photo-1513151233558-d860c5398176?q=80&w=600&auto=format&fit=crop',
@@ -24,7 +22,6 @@ class _SumbawaBannerSwiperState extends State<SumbawaBannerSwiper> {
   @override
   void initState() {
     super.initState();
-    // 2. Timer untuk auto-slide otomatis setiap 3 detik
     _autoSwiperTimer = Timer.periodic(const Duration(seconds: 3), (
       Timer timer,
     ) {
@@ -46,7 +43,6 @@ class _SumbawaBannerSwiperState extends State<SumbawaBannerSwiper> {
 
   @override
   void dispose() {
-    // 3. Wajib dispose timer dan controller untuk mencegah kebocoran memori (memory leak)
     _autoSwiperTimer?.cancel();
     _pageController.dispose();
     super.dispose();
@@ -57,13 +53,10 @@ class _SumbawaBannerSwiperState extends State<SumbawaBannerSwiper> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Area Swiper Banner
         SizedBox(
           height: 180,
           child: PageView.builder(
-            // Memaksa arah scroll horizontal agar tegas
             scrollDirection: Axis.horizontal,
-            // Mengatasi bentrokan gesture dengan scroll vertikal halaman (parent scroll)
             physics: const AlwaysScrollableScrollPhysics(
               parent: ClampingScrollPhysics(),
             ),
@@ -71,21 +64,19 @@ class _SumbawaBannerSwiperState extends State<SumbawaBannerSwiper> {
             itemCount: _bannerImages.length,
             onPageChanged: (int page) {
               setState(() {
-                _currentPage =
-                    page; // Menjaga posisi dots indicator tetap sinkron
+                _currentPage = page;
               });
             },
             itemBuilder: (context, index) {
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
                 child: Container(
-                  clipBehavior: Clip
-                      .antiAlias, // Memotong gambar agar mengikuti lekukan border
+                  clipBehavior: Clip.antiAlias,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: const Color.fromARGB(26, 0, 0, 0),
                         blurRadius: 8,
                         offset: const Offset(0, 4),
                       ),
@@ -108,6 +99,14 @@ class _SumbawaBannerSwiperState extends State<SumbawaBannerSwiper> {
                         ),
                       );
                     },
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: const Color(0xFFF0F0F0),
+                        child: const Center(
+                          child: Icon(Icons.broken_image_outlined, size: 30),
+                        ),
+                      );
+                    },
                   ),
                 ),
               );
@@ -117,24 +116,19 @@ class _SumbawaBannerSwiperState extends State<SumbawaBannerSwiper> {
 
         const SizedBox(height: 16),
 
-        // Dots Indicator (Indikator Titik Bulat di Bawah)
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(_bannerImages.length, (index) {
-            bool isActive = _currentPage == index;
+            final isActive = _currentPage == index;
             return AnimatedContainer(
-              duration: const Duration(
-                milliseconds: 150,
-              ), // Durasi cepat agar realtime mengikuti jari
+              duration: const Duration(milliseconds: 150),
               margin: const EdgeInsets.symmetric(horizontal: 4),
               height: 8,
-              width: isActive
-                  ? 24
-                  : 8, // Berubah memanjang menjadi kapsul jika aktif
+              width: isActive ? 24 : 8,
               decoration: BoxDecoration(
                 color: isActive
-                    ? const Color.fromRGBO(209, 41, 58, 1) // Merah Astra
-                    : Colors.grey[300], // Abu-abu default
+                    ? const Color.fromRGBO(209, 41, 58, 1)
+                    : Colors.grey[300],
                 borderRadius: BorderRadius.circular(4),
               ),
             );

@@ -15,69 +15,64 @@ class FloatingBottomBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const primaryColor = Color.fromRGBO(209, 41, 58, 1);
+
+    const items = [
+      _BottomBarItem(
+        icon: Icons.home_outlined,
+        activeIcon: Icons.home_rounded,
+        label: 'Home',
+      ),
+      _BottomBarItem(
+        icon: Icons.precision_manufacturing_outlined,
+        activeIcon: Icons.precision_manufacturing_rounded,
+        label: 'Product',
+      ),
+      _BottomBarItem(
+        icon: Icons.location_pin,
+        activeIcon: Icons.location_pin,
+        label: 'Workshop',
+      ),
+      _BottomBarItem(
+        icon: Icons.newspaper_outlined,
+        activeIcon: Icons.newspaper_rounded,
+        label: 'Article',
+      ),
+      _BottomBarItem(
+        icon: Icons.person_outline_rounded,
+        activeIcon: Icons.person_rounded,
+        label: 'Profile',
+      ),
+    ];
+
     return Container(
       height: 60,
       decoration: BoxDecoration(
-        color: const Color.fromARGB(255, 255, 255, 255),
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.zero,
-          topRight: Radius.zero,
-        ),
+        color: Colors.white,
         boxShadow: [
-          BoxShadow(
-            color: const Color.fromARGB(38, 0, 0, 0), //
+          const BoxShadow(
+            color: Color.fromARGB(38, 0, 0, 0),
             blurRadius: 4,
             spreadRadius: 1,
-            offset: const Offset(0, 4),
+            offset: Offset(0, 4),
           ),
         ],
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          // Menu 1: Home
-          _buildBarItem(
-            index: 0,
-            icon: Icons.home_outlined,
-            activeIcon: Icons.home_rounded,
-            label: 'Home',
-            color: primaryColor,
-          ),
+        children: List.generate(items.length, (index) {
+          final item = items[index];
+          final badgeCount = index == 1 ? notificationCount : 0;
 
-          // Menu 2: Notification (Dengan Kondisi Badge)
-          _buildBarItem(
-            index: 1,
-            icon: Icons.precision_manufacturing_outlined,
-            activeIcon: Icons.precision_manufacturing_rounded,
-            label: 'Product',
+          return _buildBarItem(
+            index: index,
+            icon: item.icon,
+            activeIcon: item.activeIcon,
+            label: item.label,
             color: primaryColor,
-            // badgeCount: notificationCount, // Mengirim data jumlah notif
-          ),
-
-          // Menu 3: Profile
-          _buildBarItem(
-            index: 2,
-            icon: Icons.location_pin,
-            activeIcon: Icons.location_pin,
-            label: 'workshop',
-            color: primaryColor,
-          ),
-          _buildBarItem(
-            index: 2,
-            icon: Icons.newspaper_outlined,
-            activeIcon: Icons.newspaper_rounded,
-            label: 'Article',
-            color: primaryColor,
-          ),
-          _buildBarItem(
-            index: 2,
-            icon: Icons.person_outline_rounded,
-            activeIcon: Icons.person_rounded,
-            label: 'Profile',
-            color: primaryColor,
-          ),
-        ],
+            badgeCount: badgeCount,
+          );
+        }),
       ),
     );
   }
@@ -92,14 +87,12 @@ class FloatingBottomBar extends StatelessWidget {
   }) {
     final bool isActive = currentIndex == index;
 
-    // Menentukan widget icon (apakah dibungkus badge atau tidak)
     Widget iconWidget = Icon(
       isActive ? activeIcon : icon,
       color: isActive ? color : const Color(0xFF7A6F6C),
       size: 24,
     );
 
-    // Mengaplikasikan kondisi badge > 0 seperti menu yang kita perbaiki kemarin
     if (badgeCount > 0) {
       iconWidget = Badge(
         backgroundColor: color,
@@ -134,4 +127,16 @@ class FloatingBottomBar extends StatelessWidget {
       ),
     );
   }
+}
+
+class _BottomBarItem {
+  const _BottomBarItem({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final IconData activeIcon;
+  final String label;
 }

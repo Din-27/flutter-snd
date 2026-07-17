@@ -6,6 +6,8 @@ class FloatingAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   const FloatingAppBar({super.key, this.controller, this.onFilterPressed});
 
+  static const _badgeColor = Color.fromRGBO(209, 41, 58, 1);
+
   @override
   Widget build(BuildContext context) {
     const int notif = 1;
@@ -15,26 +17,23 @@ class FloatingAppBar extends StatelessWidget implements PreferredSizeWidget {
       child: Container(
         height: 56,
         decoration: BoxDecoration(
-          color: const Color.fromARGB(255, 255, 255, 255),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
-            BoxShadow(
-              color: const Color.fromARGB(62, 0, 0, 0).withValues(), 
+            const BoxShadow(
+              color: Color.fromARGB(62, 0, 0, 0),
               blurRadius: 8,
               spreadRadius: 1,
-              offset: const Offset(0, 4),
+              offset: Offset(0, 4),
             ),
           ],
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Row(
-          mainAxisAlignment:
-              MainAxisAlignment.spaceBetween, // Perbaikan sintaksis di sini
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Logo Container dengan Clip agar sudut gambar ikut tumpul
             Container(
-              clipBehavior: Clip
-                  .antiAlias, // Memotong gambar agar mengikuti kelengkungan border
+              clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
                 color: const Color.fromARGB(255, 196, 39, 39),
@@ -45,19 +44,17 @@ class FloatingAppBar extends StatelessWidget implements PreferredSizeWidget {
                 width: 40,
               ),
             ),
-
-            // Sisi Kanan: Tombol Notifikasi dengan Badge
             GestureDetector(
               onTap: onFilterPressed,
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: const BoxDecoration(
-                  color: Color.fromARGB(255, 255, 255, 255),
+                  color: Colors.white,
                   shape: BoxShape.circle,
                 ),
                 child: notif > 0
                     ? const Badge(
-                        backgroundColor: Color.fromRGBO(209, 41, 58, 1),
+                        backgroundColor: _badgeColor,
                         smallSize: 8,
                         child: Icon(Icons.notifications_outlined, size: 20),
                       )
