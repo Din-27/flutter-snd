@@ -146,7 +146,7 @@ lib/
 
 - `core/theme`:
 	- [lib/core/theme/app_theme.dart](lib/core/theme/app_theme.dart)
-	- Basis warna brand termasuk base soft color `#FFF0EE`
+	- Basis warna brand termasuk base soft color `#C22E43`
 
 ### 4. Feature Layer
 
@@ -247,7 +247,7 @@ Desain penggunaan:
 Konfigurasi warna utama di [lib/core/theme/app_theme.dart](lib/core/theme/app_theme.dart):
 
 - `primary`: `#5C4E4B`
-- `softPrimary`: `#FFF0EE` (base color request)
+- `softPrimary`: `#C22E43` (base color request)
 - `textPrimary`: `#2C2624`
 - `textSecondary`: `#6D6A69`
 

@@ -40,16 +40,21 @@ class TransactionDetailScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         children: [
           Card(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(orderId, style: const TextStyle(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 4),
-                Text('Gateway: $gateway'),
-                const SizedBox(height: 4),
-                Text('Total: $formattedAmount'),
-              ],
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    orderId,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 4),
+                  Text('Gateway: $gateway'),
+                  const SizedBox(height: 4),
+                  Text('Total: $formattedAmount'),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 14),
