@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static const primary = Color(0xFF5C4E4B);
-  static const softPrimary = Color(0xFFFFF0EE);
+  // Base colors - 50% primary, 25% secondary, 25% accent
+  static const primary = Color(0xFFCE2939);
+  static const secondary = Color(0xFF2E4A86);
+  static const accent = Color(0xFFFFF0EE);
+  
   static const textPrimary = Color(0xFF2C2624);
   static const textSecondary = Color(0xFF6D6A69);
 
@@ -16,16 +19,17 @@ class AppTheme {
         seedColor: primary,
         brightness: Brightness.light,
         primary: primary,
+        secondary: secondary,
         surface: Colors.white,
       ),
       appBarTheme: const AppBarTheme(
         centerTitle: false,
         elevation: 0,
-        backgroundColor: Colors.transparent,
+        backgroundColor: primary,
         surfaceTintColor: Colors.transparent,
-        foregroundColor: textPrimary,
+        foregroundColor: Colors.white,
         titleTextStyle: TextStyle(
-          color: textPrimary,
+          color: Colors.white,
           fontSize: 20,
           fontWeight: FontWeight.w700,
         ),
@@ -41,7 +45,7 @@ class AppTheme {
       ),
       chipTheme: base.chipTheme.copyWith(
         backgroundColor: Colors.white,
-        selectedColor: softPrimary,
+        selectedColor: accent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -62,7 +66,7 @@ class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: softPrimary,
+          backgroundColor: accent,
           foregroundColor: primary,
           textStyle: const TextStyle(fontWeight: FontWeight.w700),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

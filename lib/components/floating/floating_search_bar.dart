@@ -23,10 +23,17 @@ class FloatingSearchBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          const Icon(
-            Icons.speed_outlined,
-            color: Color(0xFFFFF0EE),
-            size: 24,
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color.fromARGB(255, 255, 28, 28).withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.speed_outlined,
+              size: 32,
+              color: Colors.white,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -36,10 +43,7 @@ class FloatingSearchBar extends StatelessWidget {
               cursorColor: const Color(0xFFFFF0EE),
               decoration: const InputDecoration(
                 hintText: 'Find a workshop near you...',
-                hintStyle: TextStyle(
-                  color: Color(0xFF7A6F6C),
-                  fontSize: 16,
-                ),
+                hintStyle: TextStyle(color: Color(0xFF7A6F6C), fontSize: 16),
                 border: InputBorder.none,
                 isDense: true,
               ),

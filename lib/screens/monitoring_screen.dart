@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:shop_and_drive/components/layout/app_page_scaffold.dart';
+import 'package:shop_and_drive/core/theme/app_theme.dart';
 
 class MonitoringScreen extends StatelessWidget {
   const MonitoringScreen({super.key});
@@ -38,18 +39,11 @@ class MonitoringScreen extends StatelessWidget {
   List<_WorkshopDistance> _sortedByDistance() {
     const distance = Distance();
     final ranked = _workshops
-        .map(
-          (workshop) => _WorkshopDistance(
-            workshop: workshop,
-            km: distance.as(
-              LengthUnit.Kilometer,
-              _currentLocation,
-              workshop.location,
-            ),
-          ),
-        )
+        .map((w) => _WorkshopDistance(
+              workshop: w,
+              km: distance.as(LengthUnit.Kilometer, _currentLocation, w.location),
+            ))
         .toList();
-
     ranked.sort((a, b) => a.km.compareTo(b.km));
     return ranked;
   }
@@ -71,7 +65,6 @@ class MonitoringScreen extends StatelessWidget {
       ),
       _currentLocation,
     ];
-
     final technicianLocation = techRoute[2];
 
     return AppPageScaffold(
@@ -85,14 +78,12 @@ class MonitoringScreen extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
               child: SizedBox(
-                height: 290,
+                height: 280,
                 child: FlutterMap(
                   options: const MapOptions(
                     initialCenter: _currentLocation,
                     initialZoom: 13.8,
-                    interactionOptions: InteractionOptions(
-                      flags: InteractiveFlag.all,
-                    ),
+                    interactionOptions: InteractionOptions(flags: InteractiveFlag.all),
                   ),
                   children: [
                     TileLayer(
@@ -103,7 +94,7 @@ class MonitoringScreen extends StatelessWidget {
                       polylines: [
                         Polyline(
                           points: techRoute,
-                          color: const Color(0xFF3F7CAC),
+                          color: AppTheme.secondary,
                           strokeWidth: 4,
                         ),
                       ],
@@ -116,7 +107,7 @@ class MonitoringScreen extends StatelessWidget {
                           height: 46,
                           child: const _MapPin(
                             icon: Icons.home_rounded,
-                            color: Color(0xFF2A9D8F),
+                            color: AppTheme.primary,
                           ),
                         ),
                         ...rankedWorkshops.map(
@@ -126,7 +117,7 @@ class MonitoringScreen extends StatelessWidget {
                             height: 42,
                             child: const _MapPin(
                               icon: Icons.car_repair_rounded,
-                              color: Color(0xFFE76F51),
+                              color: AppTheme.secondary,
                             ),
                           ),
                         ),
@@ -134,9 +125,9 @@ class MonitoringScreen extends StatelessWidget {
                           point: technicianLocation,
                           width: 48,
                           height: 48,
-                          child: const _MapPin(
+                          child: _MapPin(
                             icon: Icons.delivery_dining_rounded,
-                            color: Color(0xFF264653),
+                            color: const Color(0xFF264653),
                           ),
                         ),
                       ],
@@ -145,10 +136,10 @@ class MonitoringScreen extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 6),
-            const Text(
-              'Map data: OpenStreetMap (gratis)',
-              style: TextStyle(fontSize: 11, color: Color(0xFF6D6A69)),
+            const SizedBox(height: 8),
+            Text(
+              'Map data: OpenStreetMap',
+              style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
             ),
             const SizedBox(height: 18),
             const Text(
@@ -156,9 +147,7 @@ class MonitoringScreen extends StatelessWidget {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 10),
-            ...rankedWorkshops.take(3).map((item) {
-              return _WorkshopCard(item: item);
-            }),
+            ...rankedWorkshops.take(3).map((item) => _WorkshopCard(item: item)),
             const SizedBox(height: 14),
             _HomeServiceProgressCard(nearest: nearest),
           ],
@@ -170,7 +159,6 @@ class MonitoringScreen extends StatelessWidget {
 
 class _MapPin extends StatelessWidget {
   const _MapPin({required this.icon, required this.color});
-
   final IconData icon;
   final Color color;
 
@@ -180,6 +168,7 @@ class _MapPin extends StatelessWidget {
       decoration: BoxDecoration(
         color: color,
         shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 2),
         boxShadow: const [
           BoxShadow(
             color: Color.fromARGB(61, 0, 0, 0),
@@ -188,14 +177,13 @@ class _MapPin extends StatelessWidget {
           ),
         ],
       ),
-      child: Icon(icon, color: Colors.white, size: 22),
+      child: Icon(icon, color: Colors.white, size: 20),
     );
   }
 }
 
 class _WorkshopCard extends StatelessWidget {
   const _WorkshopCard({required this.item});
-
   final _WorkshopDistance item;
 
   @override
@@ -206,7 +194,14 @@ class _WorkshopCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE6DFDD)),
+        border: Border.all(color: const Color(0xFFE8EBF1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -214,10 +209,10 @@ class _WorkshopCard extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: const BoxDecoration(
-              color: Color(0xFFFFF0EE),
+              color: AppTheme.accent,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.garage_rounded, color: Color(0xFF6C5A55)),
+            child: const Icon(Icons.garage_rounded, color: AppTheme.primary),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -228,15 +223,12 @@ class _WorkshopCard extends StatelessWidget {
                   item.workshop.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF39312F),
-                  ),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   item.workshop.address,
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF6D6A69)),
+                  style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                 ),
               ],
             ),
@@ -251,7 +243,7 @@ class _WorkshopCard extends StatelessWidget {
               ),
               Text(
                 '${item.workshop.etaMinutes} min',
-                style: const TextStyle(fontSize: 12, color: Color(0xFF6D6A69)),
+                style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
               ),
             ],
           ),
@@ -263,7 +255,6 @@ class _WorkshopCard extends StatelessWidget {
 
 class _HomeServiceProgressCard extends StatelessWidget {
   const _HomeServiceProgressCard({required this.nearest});
-
   final _WorkshopDistance nearest;
 
   @override
@@ -272,9 +263,9 @@ class _HomeServiceProgressCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFD),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFDDE3EC)),
+        border: Border.all(color: const Color(0xFFE8EBF1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -286,7 +277,7 @@ class _HomeServiceProgressCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             'Teknisi berangkat dari ${nearest.workshop.name}',
-            style: const TextStyle(color: Color(0xFF5F5A58)),
+            style: TextStyle(color: AppTheme.textSecondary),
           ),
           const SizedBox(height: 12),
           const _TimelineStep(
@@ -323,7 +314,6 @@ class _TimelineStep extends StatelessWidget {
     required this.subtitle,
     this.isLast = false,
   });
-
   final bool isDone;
   final String title;
   final String subtitle;
@@ -331,8 +321,7 @@ class _TimelineStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dotColor = isDone ? const Color(0xFF2A9D8F) : const Color(0xFFB7C1D1);
-
+    final dotColor = isDone ? AppTheme.primary : const Color(0xFFB7C1D1);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -344,11 +333,7 @@ class _TimelineStep extends StatelessWidget {
               decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
             ),
             if (!isLast)
-              Container(
-                width: 2,
-                height: 28,
-                color: const Color(0xFFD0D7E2),
-              ),
+              Container(width: 2, height: 28, color: const Color(0xFFD0D7E2)),
           ],
         ),
         const SizedBox(width: 10),
@@ -361,7 +346,7 @@ class _TimelineStep extends StatelessWidget {
                 Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
                 Text(
                   subtitle,
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF6D6A69)),
+                  style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                 ),
               ],
             ),
@@ -379,7 +364,6 @@ class _Workshop {
     required this.location,
     required this.etaMinutes,
   });
-
   final String name;
   final String address;
   final LatLng location;
@@ -388,7 +372,6 @@ class _Workshop {
 
 class _WorkshopDistance {
   const _WorkshopDistance({required this.workshop, required this.km});
-
   final _Workshop workshop;
   final double km;
 }

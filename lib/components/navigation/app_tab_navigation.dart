@@ -14,7 +14,7 @@ class AppTabNavigation {
         context.go('/monitoring');
         break;
       case 3:
-        context.go('/promo');
+        context.go('/article');
         break;
       case 4:
         context.go('/profile');

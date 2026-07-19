@@ -6,12 +6,12 @@ class ProductListCard extends StatelessWidget {
     super.key,
     required this.product,
     required this.priceText,
-    required this.onCheckout,
+    required this.onTap,
   });
 
   final CatalogProduct product;
   final String priceText;
-  final VoidCallback onCheckout;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +41,7 @@ class ProductListCard extends StatelessWidget {
                   const SizedBox(height: 7),
                   Align(
                     alignment: Alignment.centerLeft,
-                    child: FilledButton(onPressed: onCheckout, child: const Text('Checkout')),
+                      child: FilledButton(onPressed: onTap, child: const Text('Detail')),
                   ),
                 ],
               ),

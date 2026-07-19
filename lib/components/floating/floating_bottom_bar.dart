@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shop_and_drive/core/theme/app_theme.dart';
 
 class FloatingBottomBar extends StatelessWidget {
   final int currentIndex;
@@ -14,17 +15,8 @@ class FloatingBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const activeBackgroundColor = Color(0xFFFFF0EE);
-    const inactiveIconColor = Color(0xFF7A6F6C);
-    const activeIconColor = Color(0xFF5C4E4B);
-    const badgeColor = Color(0xFF5C4E4B);
-
     const items = [
-      _BottomBarItem(
-        icon: Icons.home_outlined,
-        activeIcon: Icons.home_rounded,
-        label: 'Home',
-      ),
+      _BottomBarItem(icon: Icons.home_outlined, activeIcon: Icons.home_rounded, label: 'Home'),
       _BottomBarItem(
         icon: Icons.precision_manufacturing_outlined,
         activeIcon: Icons.precision_manufacturing_rounded,
@@ -36,47 +28,35 @@ class FloatingBottomBar extends StatelessWidget {
         label: 'Workshop',
         isCenter: true,
       ),
-      _BottomBarItem(
-        icon: Icons.newspaper_outlined,
-        activeIcon: Icons.newspaper_rounded,
-        label: 'Article',
-      ),
-      _BottomBarItem(
-        icon: Icons.person_outline_rounded,
-        activeIcon: Icons.person_rounded,
-        label: 'Profile',
-      ),
+      _BottomBarItem(icon: Icons.newspaper_outlined, activeIcon: Icons.newspaper_rounded, label: 'Article'),
+      _BottomBarItem(icon: Icons.person_outline_rounded, activeIcon: Icons.person_rounded, label: 'Profile'),
     ];
 
     return Container(
-      height: 80,
+      height: 72,
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       decoration: BoxDecoration(
         color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE8EBF1)),
         boxShadow: [
-          const BoxShadow(
-            color: Color.fromARGB(38, 0, 0, 0),
-            blurRadius: 4,
-            spreadRadius: 1,
-            offset: Offset(0, 4),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: List.generate(items.length, (index) {
           final item = items[index];
           final badgeCount = index == 1 ? notificationCount : 0;
-
           return _buildBarItem(
             index: index,
             icon: item.icon,
             activeIcon: item.activeIcon,
             label: item.label,
-            activeBackgroundColor: activeBackgroundColor,
-            activeIconColor: activeIconColor,
-            inactiveIconColor: inactiveIconColor,
-            badgeColor: badgeColor,
             badgeCount: badgeCount,
             isCenter: item.isCenter,
           );
@@ -90,75 +70,89 @@ class FloatingBottomBar extends StatelessWidget {
     required IconData icon,
     required IconData activeIcon,
     required String label,
-    required Color activeBackgroundColor,
-    required Color activeIconColor,
-    required Color inactiveIconColor,
-    required Color badgeColor,
     required bool isCenter,
     int badgeCount = 0,
   }) {
     final bool isActive = currentIndex == index;
 
+    // Center button
+    if (isCenter) {
+      return Expanded(
+        child: InkWell(
+          onTap: () => onTap(index),
+          customBorder: const CircleBorder(),
+          child: Transform.translate(
+            offset: const Offset(0, -14),
+            child: Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppTheme.primary, Color(0xFFA91F33)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 3),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primary.withValues(alpha: 0.4),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.location_pin, color: Colors.white, size: 28),
+            ),
+          ),
+        ),
+      );
+    }
+
     Widget iconWidget = Icon(
       isActive ? activeIcon : icon,
-      color: isActive ? activeIconColor : inactiveIconColor,
-      size: isCenter ? 30 : 22,
+      color: isActive ? AppTheme.primary : AppTheme.textSecondary,
+      size: 22,
     );
 
     if (badgeCount > 0) {
       iconWidget = Badge(
-        backgroundColor: badgeColor,
+        backgroundColor: AppTheme.secondary,
         label: Text(
           '$badgeCount',
-          style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold),
+          style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.white),
         ),
         child: iconWidget,
       );
     }
 
-    final iconContainer = AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOut,
-      width: isCenter ? (isActive ? 62 : 58) : 42,
-      height: isCenter ? (isActive ? 62 : 58) : 36,
-      decoration: BoxDecoration(
-        color: isActive ? activeBackgroundColor : Colors.transparent,
-        shape: isCenter ? BoxShape.circle : BoxShape.rectangle,
-        borderRadius: isCenter ? null : BorderRadius.circular(12),
-        boxShadow: isCenter
-            ? [
-                const BoxShadow(
-                  color: Color.fromARGB(35, 0, 0, 0),
-                  blurRadius: 8,
-                  offset: Offset(0, 3),
-                ),
-              ]
-            : null,
-      ),
-      alignment: Alignment.center,
-      child: iconWidget,
-    );
-
     return Expanded(
       child: InkWell(
         onTap: () => onTap(index),
-        splashColor: Colors.transparent,
-        highlightColor: Colors.transparent,
+        customBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (isCenter)
-              Transform.translate(offset: const Offset(0, -6), child: iconContainer)
-            else
-              iconContainer,
-            SizedBox(height: isCenter ? 0 : 4),
-            Text(
-              label,
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOut,
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: isActive ? AppTheme.accent : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: iconWidget,
+            ),
+            const SizedBox(height: 4),
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOut,
               style: TextStyle(
                 fontSize: 10,
-                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                color: isActive ? activeIconColor : inactiveIconColor,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                color: isActive ? AppTheme.primary : AppTheme.textSecondary,
               ),
+              child: Text(label),
             ),
           ],
         ),
