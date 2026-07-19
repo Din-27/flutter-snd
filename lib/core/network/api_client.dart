@@ -47,6 +47,22 @@ class ApiClient {
     return _parse(response);
   }
 
+  Future<Map<String, dynamic>> put(
+    String path, {
+    Map<String, dynamic>? body,
+    String? accessToken,
+  }) async {
+    final uri = Uri.parse('${ApiEndpoints.baseUrl}$path');
+    final response = await _executeWithPolicy(
+      () => _httpClient.put(
+        uri,
+        headers: _headers(accessToken),
+        body: jsonEncode(body ?? <String, dynamic>{}),
+      ),
+    );
+    return _parse(response);
+  }
+
   Future<http.Response> _executeWithPolicy(
     Future<http.Response> Function() request,
   ) async {

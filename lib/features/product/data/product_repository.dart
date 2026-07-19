@@ -2,58 +2,73 @@ import 'package:shop_and_drive/core/network/api_client.dart';
 import 'package:shop_and_drive/core/network/api_endpoints.dart';
 import 'package:shop_and_drive/core/network/global_error_handler.dart';
 import 'package:shop_and_drive/core/network/api_result.dart';
-import 'package:shop_and_drive/models/catalog_product.dart';
+import 'package:shop_and_drive/models/api_models.dart';
 
 class ProductRepository {
   ProductRepository({required ApiClient apiClient}) : _apiClient = apiClient;
 
   final ApiClient _apiClient;
 
-  Future<ApiResult<List<CatalogProduct>>> fetchProducts() async {
+  Future<ApiResult<List<ProductResponse>>> fetchProducts({
+    String? merchantId,
+    String? category,
+    String? search,
+    int page = 1,
+  }) async {
     try {
-      await Future<void>.delayed(const Duration(milliseconds: 900));
+      final query = <String, String>{
+        'page': page.toString(),
+      };
+      if (merchantId != null) query['merchantId'] = merchantId;
+      if (category != null) query['category'] = category;
+      if (search != null) query['search'] = search;
 
-    // Template API call:
-    // final response = await _apiClient.get(ApiEndpoints.products);
+      final response = await _apiClient.get(
+        ApiEndpoints.products,
+        query: query,
+      );
 
-    const products = [
-      CatalogProduct(
-        name: 'Brake Pad Ceramic',
-        category: 'Sparepart',
-        price: 850000,
-        imageUrl:
-            'https://images.unsplash.com/photo-1487754180451-c456f719a1fc?q=80&w=1200&auto=format&fit=crop',
-        rating: 4.8,
-      ),
-      CatalogProduct(
-        name: 'Engine Oil 5W-30',
-        category: 'Oli Mesin',
-        price: 420000,
-        imageUrl:
-            'https://images.unsplash.com/photo-1635764702449-71f3fb13f346?q=80&w=1200&auto=format&fit=crop',
-        rating: 4.7,
-      ),
-      CatalogProduct(
-        name: 'Portable Jump Starter',
-        category: 'Aksesoris',
-        price: 1250000,
-        imageUrl:
-            'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?q=80&w=1200&auto=format&fit=crop',
-        rating: 4.9,
-      ),
-      CatalogProduct(
-        name: 'Air Filter Premium',
-        category: 'Sparepart',
-        price: 280000,
-        imageUrl:
-            'https://images.unsplash.com/photo-1676319675641-a5376c70f5f6?q=80&w=1200&auto=format&fit=crop',
-        rating: 4.6,
-      ),
-    ];
+      final list = _extractList(response);
+      final products = list
+          .map((e) => ProductResponse.fromJson(e as Map<String, dynamic>))
+          .toList();
 
-      return const ApiSuccess<List<CatalogProduct>>(products);
+      return ApiSuccess<List<ProductResponse>>(products);
     } catch (error) {
-      return ApiFailure<List<CatalogProduct>>(GlobalErrorHandler.toUserMessage(error));
+      return ApiFailure<List<ProductResponse>>(
+        GlobalErrorHandler.toUserMessage(error),
+      );
     }
+  }
+
+  Future<ApiResult<ProductDetailResponse>> fetchProductDetail(String id) async {
+    try {
+      final response = await _apiClient.get(
+        ApiEndpoints.productDetail(id),
+      );
+
+      return ApiSuccess<ProductDetailResponse>(
+        ProductDetailResponse.fromJson(response),
+      );
+    } catch (error) {
+      return ApiFailure<ProductDetailResponse>(
+        GlobalErrorHandler.toUserMessage(error),
+      );
+    }
+  }
+
+  /// Extracts list from various response shapes:
+  /// { data: [...] } or { products: [...] } or direct [...]
+  List<dynamic> _extractList(Map<String, dynamic> response) {
+    if (response.containsKey('data') && response['data'] is List) {
+      return response['data'] as List<dynamic>;
+    }
+    if (response.containsKey('products') && response['products'] is List) {
+      return response['products'] as List<dynamic>;
+    }
+    if (response.containsKey('results') && response['results'] is List) {
+      return response['results'] as List<dynamic>;
+    }
+    return <dynamic>[];
   }
 }

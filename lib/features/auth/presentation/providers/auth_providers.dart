@@ -62,6 +62,38 @@ class LoginCubit extends Cubit<AuthState> {
       },
     );
   }
+
+  Future<void> loginWithGoogle() async {
+    emit(state.copyWith(status: AuthStatus.loading, errorMessage: null));
+
+    final result = await _authRepository.loginWithGoogle();
+
+    result.when(
+      success: (session) {
+        AppServices.sessionGuard.clearUnauthorized();
+        emit(
+          state.copyWith(
+            status: AuthStatus.success,
+            session: session,
+            errorMessage: null,
+          ),
+        );
+      },
+      failure: (message) {
+        // Don't emit failure for cancellation
+        if (message != 'Login dibatalkan.' && message != 'Login Google dibatalkan.') {
+          emit(
+            state.copyWith(
+              status: AuthStatus.failure,
+              errorMessage: message,
+            ),
+          );
+        } else {
+          emit(state.copyWith(status: AuthStatus.initial, errorMessage: null));
+        }
+      },
+    );
+  }
 }
 
 class RegisterCubit extends Cubit<AuthState> {

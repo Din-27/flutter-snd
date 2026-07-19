@@ -3,44 +3,36 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:shop_and_drive/components/layout/app_page_scaffold.dart';
+import 'package:shop_and_drive/core/di/app_services.dart';
 import 'package:shop_and_drive/core/theme/app_theme.dart';
-
-enum TransactionStatus {
-  pendingPayment,
-  processing,
-  technicianOtw,
-  completed,
-}
+import 'package:shop_and_drive/models/api_models.dart';
+import 'package:shop_and_drive/utils/toast.dart';
 
 class TransactionDetailScreen extends StatefulWidget {
-  const TransactionDetailScreen({
-    super.key,
-    this.orderId = 'INV-20260717-0001',
-    this.gateway = 'Midtrans',
-    this.amount = 850000,
-    this.status = TransactionStatus.pendingPayment,
-  });
-
-  final String orderId;
-  final String gateway;
-  final int amount;
-  final TransactionStatus status;
+  const TransactionDetailScreen({super.key});
 
   @override
   State<TransactionDetailScreen> createState() => _TransactionDetailScreenState();
 }
 
 class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
-  static const _currentLocation = LatLng(-8.6502, 116.3249);
-  static const _workshopLocation = LatLng(-8.6571, 116.3022);
-  static const _technicianLocation = LatLng(-8.6535, 116.3135);
-
-  late TransactionStatus _currentStatus;
+  List<OrderResponse> _orders = [];
+  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _currentStatus = widget.status;
+    _loadOrders();
+  }
+
+  Future<void> _loadOrders() async {
+    final result = await AppServices.orderRepository.fetchOrders();
+    if (mounted) {
+      result.when(
+        success: (orders) => setState(() { _orders = orders; _loading = false; }),
+        failure: (_) => setState(() => _loading = false),
+      );
+    }
   }
 
   String _formatRupiah(int value) {
@@ -55,436 +47,227 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
     return 'Rp ${buffer.toString().split('').reversed.join()}';
   }
 
-  bool get _showMap => _currentStatus == TransactionStatus.technicianOtw;
-  bool get _showPaymentButton => _currentStatus == TransactionStatus.pendingPayment;
-
-  void _simulatePayment() {
-    setState(() {
-      _currentStatus = TransactionStatus.processing;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Pembayaran berhasil!')),
+  Future<void> _cancelOrder(OrderResponse order) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Batalkan Pesanan'),
+        content: Text('Yakin ingin membatalkan pesanan #${order.id}?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Tidak')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Ya, Batalkan'),
+          ),
+        ],
+      ),
     );
+
+    if (confirm == true) {
+      final result = await AppServices.orderRepository.cancelOrder(order.id);
+      if (mounted) {
+        result.when(
+          success: (_) {
+            showToast(context, 'Pesanan #${order.id} dibatalkan');
+            _loadOrders();
+          },
+          failure: (error) => showToast(context, error),
+        );
+      }
+    }
   }
 
-  void _simulateTechnicianOtw() {
-    setState(() {
-      _currentStatus = TransactionStatus.technicianOtw;
-    });
+  Color _statusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return Colors.orange;
+      case 'processing':
+      case 'confirmed':
+        return AppTheme.primary;
+      case 'completed':
+        return Colors.green;
+      case 'cancelled':
+        return Colors.red;
+      default:
+        return AppTheme.textSecondary;
+    }
+  }
+
+  String _statusLabel(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return 'Menunggu Pembayaran';
+      case 'processing':
+      case 'confirmed':
+        return 'Dalam Proses';
+      case 'completed':
+        return 'Selesai';
+      case 'cancelled':
+        return 'Dibatalkan';
+      default:
+        return status;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final formattedAmount = _formatRupiah(widget.amount);
-
     return AppPageScaffold(
       title: 'Detail Transaksi',
       currentIndex: null,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Transaction Header Card
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppTheme.primary, Color(0xFFA91F33)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.primary.withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.receipt_long_rounded, color: Colors.white, size: 36),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    widget.orderId,
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Gateway: ${widget.gateway}',
-                    style: const TextStyle(color: Colors.white70, fontSize: 13),
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      formattedAmount,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Status Badge
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                _StatusBadge(
-                  label: _currentStatus == TransactionStatus.pendingPayment
-                      ? 'Menunggu Pembayaran'
-                      : 'Dalam Proses',
-                  color: _currentStatus == TransactionStatus.pendingPayment
-                      ? Colors.orange
-                      : AppTheme.primary,
-                ),
-                if (_currentStatus != TransactionStatus.pendingPayment)
-                  _StatusBadge(label: 'Home Service', color: AppTheme.secondary),
-                if (_currentStatus == TransactionStatus.technicianOtw)
-                  const _StatusBadge(label: 'Teknisi OTW', color: Color(0xFF264653)),
-              ],
-            ),
-            const SizedBox(height: 20),
-
-            // Payment Button (only show if pending payment)
-            if (_showPaymentButton) ...[
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE8EBF1)),
-                ),
-                child: Column(
-                  children: [
-                    Icon(Icons.payment_rounded, size: 48, color: AppTheme.textSecondary),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Pembayaran Belum Selesai',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Selesaikan pembayaran untuk melanjutkan transaksi',
-                      style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: _simulatePayment,
-                        icon: const Icon(Icons.arrow_forward_rounded),
-                        label: const Text('Lanjutkan Pembayaran'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: AppTheme.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-            ],
-
-            // Live Tracking Map (only show if technician OTW)
-            if (_showMap) ...[
-              const Text(
-                'Monitoring Perjalanan',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 10),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: SizedBox(
-                  height: 240,
-                  child: FlutterMap(
-                    options: const MapOptions(
-                      initialCenter: _currentLocation,
-                      initialZoom: 13.5,
-                      interactionOptions: InteractionOptions(flags: InteractiveFlag.all),
-                    ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+          : _orders.isEmpty
+              ? const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      TileLayer(
-                        urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                        userAgentPackageName: 'shop_and_drive',
-                      ),
-                      PolylineLayer(
-                        polylines: [
-                          Polyline(
-                            points: [
-                              _workshopLocation,
-                              LatLng(-8.6540, 116.3100),
-                              _technicianLocation,
-                              _currentLocation,
-                            ],
-                            color: AppTheme.secondary,
-                            strokeWidth: 4,
-                          ),
-                        ],
-                      ),
-                      MarkerLayer(
-                        markers: [
-                          Marker(
-                            point: _currentLocation,
-                            width: 44,
-                            height: 44,
-                            child: const _MapPin(icon: Icons.home_rounded, color: AppTheme.primary),
-                          ),
-                          Marker(
-                            point: _workshopLocation,
-                            width: 40,
-                            height: 40,
-                            child: const _MapPin(icon: Icons.car_repair_rounded, color: AppTheme.secondary),
-                          ),
-                          Marker(
-                            point: _technicianLocation,
-                            width: 46,
-                            height: 46,
-                            child: _MapPin(icon: Icons.delivery_dining_rounded, color: const Color(0xFF264653)),
-                          ),
-                        ],
-                      ),
+                      Icon(Icons.receipt_long_rounded, size: 64, color: AppTheme.textSecondary),
+                      SizedBox(height: 16),
+                      Text('Belum ada transaksi', style: TextStyle(fontSize: 16, color: AppTheme.textSecondary)),
                     ],
                   ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _loadOrders,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _orders.length,
+                    itemBuilder: (context, index) {
+                      final order = _orders[index];
+                      return _OrderCard(
+                        order: order,
+                        formattedAmount: _formatRupiah(order.totalAmount),
+                        statusColor: _statusColor(order.status),
+                        statusLabel: _statusLabel(order.status),
+                        onCancel: order.status == 'pending' ? () => _cancelOrder(order) : null,
+                      );
+                    },
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Map data: OpenStreetMap',
-                style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
-              ),
-              const SizedBox(height: 20),
-            ],
-
-            // Progress Timeline
-            const Text(
-              'Progress Transaksi',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE8EBF1)),
-              ),
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  _TimelineStep(
-                    isDone: _currentStatus != TransactionStatus.pendingPayment,
-                    title: 'Transaksi Dibuat',
-                    subtitle: 'Order berhasil dibuat oleh customer',
-                    time: '09:00',
-                  ),
-                  _TimelineStep(
-                    isDone: _currentStatus != TransactionStatus.pendingPayment,
-                    title: 'Pembayaran Diverifikasi',
-                    subtitle: 'Pembayaran gateway sudah terverifikasi',
-                    time: _currentStatus == TransactionStatus.pendingPayment ? 'Menunggu' : '09:12',
-                  ),
-                  _TimelineStep(
-                    isDone: _currentStatus == TransactionStatus.technicianOtw,
-                    title: 'Teknisi Berangkat',
-                    subtitle: 'Teknisi berangkat dari Bengkel AutoCare',
-                    time: _currentStatus == TransactionStatus.technicianOtw ? '09:18' : 'Menunggu',
-                  ),
-                  _TimelineStep(
-                    isDone: false,
-                    title: 'Dalam Perjalanan',
-                    subtitle: 'ETA 12 menit - Live tracking aktif',
-                    time: _currentStatus == TransactionStatus.technicianOtw ? '09:20' : 'Menunggu',
-                    isActive: _currentStatus == TransactionStatus.technicianOtw,
-                  ),
-                  _TimelineStep(
-                    isDone: false,
-                    title: 'Pekerjaan Selesai',
-                    subtitle: 'Menunggu konfirmasi selesai servis',
-                    time: 'Menunggu',
-                    isLast: true,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Action Buttons
-            if (!_showPaymentButton) ...[
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => context.go('/'),
-                      icon: const Icon(Icons.home_rounded),
-                      label: const Text('Home'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton.icon(
-                      onPressed: _currentStatus == TransactionStatus.processing
-                          ? _simulateTechnicianOtw
-                          : () {},
-                      icon: Icon(
-                        _currentStatus == TransactionStatus.processing
-                            ? Icons.delivery_dining_rounded
-                            : Icons.phone_rounded,
-                      ),
-                      label: Text(
-                        _currentStatus == TransactionStatus.processing
-                            ? 'Simulasi OTW'
-                            : 'Hubungi Teknisi',
-                      ),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppTheme.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
     );
   }
 }
 
-class _StatusBadge extends StatelessWidget {
-  const _StatusBadge({required this.label, required this.color});
-  final String label;
-  final Color color;
+class _OrderCard extends StatelessWidget {
+  const _OrderCard({
+    required this.order,
+    required this.formattedAmount,
+    required this.statusColor,
+    required this.statusLabel,
+    this.onCancel,
+  });
+
+  final OrderResponse order;
+  final String formattedAmount;
+  final Color statusColor;
+  final String statusLabel;
+  final VoidCallback? onCancel;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color),
-      ),
-    );
-  }
-}
-
-class _MapPin extends StatelessWidget {
-  const _MapPin({required this.icon, required this.color});
-  final IconData icon;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 2),
-        boxShadow: const [
-          BoxShadow(color: Color.fromARGB(61, 0, 0, 0), blurRadius: 6, offset: Offset(0, 3)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE8EBF1)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2)),
         ],
       ),
-      child: Icon(icon, color: Colors.white, size: 20),
-    );
-  }
-}
-
-class _TimelineStep extends StatelessWidget {
-  const _TimelineStep({
-    required this.isDone,
-    required this.title,
-    required this.subtitle,
-    required this.time,
-    this.isActive = false,
-    this.isLast = false,
-  });
-  final bool isDone;
-  final String title;
-  final String subtitle;
-  final String time;
-  final bool isActive;
-  final bool isLast;
-
-  @override
-  Widget build(BuildContext context) {
-    final dotColor = isDone
-        ? AppTheme.primary
-        : isActive
-            ? AppTheme.secondary
-            : const Color(0xFFB7C1D1);
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Column(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: isActive ? 16 : 12,
-              height: isActive ? 16 : 12,
-              decoration: BoxDecoration(
-                color: dotColor,
-                shape: BoxShape.circle,
-                border: isActive ? Border.all(color: AppTheme.secondary.withValues(alpha: 0.3), width: 3) : null,
-              ),
-            ),
-            if (!isLast) Container(width: 2, height: 36, color: const Color(0xFFD0D7E2)),
-          ],
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  title,
-                  style: TextStyle(
-                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
-                    color: isActive ? AppTheme.secondary : AppTheme.textPrimary,
+                  '#${order.id}',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: statusColor.withValues(alpha: 0.3)),
+                  ),
+                  child: Text(
+                    statusLabel,
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: statusColor),
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(subtitle, style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
               ],
             ),
-          ),
+            const SizedBox(height: 8),
+            Text(
+              formattedAmount,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.primary),
+            ),
+            if (order.createdAt != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                order.createdAt!,
+                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+              ),
+            ],
+            if (order.items != null && order.items!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              const Divider(),
+              const SizedBox(height: 8),
+              ...order.items!.map((item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${item.quantity}x ${item.productName}',
+                            style: const TextStyle(fontSize: 13),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Text(
+                          _formatCompact(item.price * item.quantity),
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  )),
+            ],
+            if (onCancel != null) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: onCancel,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red,
+                    side: const BorderSide(color: Colors.red),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: const Text('Batalkan Pesanan'),
+                ),
+              ),
+            ],
+          ],
         ),
-        Text(time, style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
-      ],
+      ),
     );
+  }
+
+  String _formatCompact(int value) {
+    final asString = value.toString();
+    final buffer = StringBuffer();
+    var count = 0;
+    for (var i = asString.length - 1; i >= 0; i--) {
+      buffer.write(asString[i]);
+      count++;
+      if (count % 3 == 0 && i != 0) buffer.write('.');
+    }
+    return 'Rp ${buffer.toString().split('').reversed.join()}';
   }
 }

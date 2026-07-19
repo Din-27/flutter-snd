@@ -1,11 +1,11 @@
-import 'dart:async';
-
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shop_and_drive/core/network/api_client.dart';
 import 'package:shop_and_drive/core/network/api_endpoints.dart';
 import 'package:shop_and_drive/core/network/global_error_handler.dart';
 import 'package:shop_and_drive/core/network/api_result.dart';
 import 'package:shop_and_drive/core/storage/session_storage.dart';
 import 'package:shop_and_drive/features/auth/domain/models/auth_session.dart';
+import 'package:shop_and_drive/models/api_models.dart';
 
 class AuthRepository {
   AuthRepository({
@@ -16,30 +16,75 @@ class AuthRepository {
 
   final ApiClient _apiClient;
   final SessionStorage _storage;
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: ['email', 'profile'],
+  );
+
+  Future<ApiResult<AuthSession>> loginWithGoogle() async {
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
+      if (googleUser == null) {
+        return const ApiFailure<AuthSession>('Login dibatalkan.');
+      }
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      // Google login via backend API
+      final response = await _apiClient.post(
+        ApiEndpoints.login,
+        body: {
+          'idToken': googleAuth.idToken,
+          'accessToken': googleAuth.accessToken,
+          'provider': 'google',
+        },
+      );
+
+      final tokenData = AuthTokenResponse.fromJson(response);
+      final session = AuthSession(
+        userId: tokenData.userId,
+        name: tokenData.name,
+        email: tokenData.email,
+        accessToken: tokenData.accessToken,
+        refreshToken: tokenData.refreshToken,
+      );
+
+      await _storage.saveTokens(
+        accessToken: session.accessToken,
+        refreshToken: session.refreshToken,
+      );
+
+      return ApiSuccess<AuthSession>(session);
+    } catch (error) {
+      if (error is Exception && error.toString().contains('Sign in action cancelled')) {
+        return const ApiFailure<AuthSession>('Login Google dibatalkan.');
+      }
+      return ApiFailure<AuthSession>(GlobalErrorHandler.toUserMessage(error));
+    }
+  }
+
+  Future<void> logoutFromGoogle() async {
+    await _googleSignIn.signOut();
+  }
 
   Future<ApiResult<AuthSession>> login({
     required String email,
     required String password,
   }) async {
     try {
-      await Future<void>.delayed(const Duration(milliseconds: 900));
+      final response = await _apiClient.post(
+        ApiEndpoints.login,
+        body: {'email': email, 'password': password},
+      );
 
-      // Template API call:
-      // final response = await _apiClient.post(
-      //   ApiEndpoints.login,
-      //   body: {'email': email, 'password': password},
-      // );
-
-      if (email.isEmpty || password.isEmpty || !email.contains('@')) {
-        return const ApiFailure<AuthSession>('Email atau password tidak valid.');
-      }
-
+      final tokenData = AuthTokenResponse.fromJson(response);
       final session = AuthSession(
-        userId: 'usr_001',
-        name: 'Herdiyana',
-        email: email,
-        accessToken: 'mock_access_token_123',
-        refreshToken: 'mock_refresh_token_123',
+        userId: tokenData.userId,
+        name: tokenData.name,
+        email: tokenData.email,
+        accessToken: tokenData.accessToken,
+        refreshToken: tokenData.refreshToken,
       );
 
       await _storage.saveTokens(
@@ -59,24 +104,18 @@ class AuthRepository {
     required String password,
   }) async {
     try {
-      await Future<void>.delayed(const Duration(milliseconds: 950));
+      final response = await _apiClient.post(
+        ApiEndpoints.register,
+        body: {'name': name, 'email': email, 'password': password},
+      );
 
-      // Template API call:
-      // final response = await _apiClient.post(
-      //   ApiEndpoints.register,
-      //   body: {'name': name, 'email': email, 'password': password},
-      // );
-
-      if (name.isEmpty || email.isEmpty || password.length < 6) {
-        return const ApiFailure<AuthSession>('Data registrasi belum valid.');
-      }
-
+      final tokenData = AuthTokenResponse.fromJson(response);
       final session = AuthSession(
-        userId: 'usr_002',
-        name: name,
-        email: email,
-        accessToken: 'mock_access_token_new',
-        refreshToken: 'mock_refresh_token_new',
+        userId: tokenData.userId,
+        name: tokenData.name,
+        email: tokenData.email,
+        accessToken: tokenData.accessToken,
+        refreshToken: tokenData.refreshToken,
       );
 
       await _storage.saveTokens(
@@ -87,6 +126,48 @@ class AuthRepository {
       return ApiSuccess<AuthSession>(session);
     } catch (error) {
       return ApiFailure<AuthSession>(GlobalErrorHandler.toUserMessage(error));
+    }
+  }
+
+  Future<ApiResult<CustomerProfileResponse>> getProfile() async {
+    try {
+      final accessToken = await _storage.getAccessToken();
+      final response = await _apiClient.get(
+        ApiEndpoints.profile,
+        accessToken: accessToken,
+      );
+      return ApiSuccess<CustomerProfileResponse>(
+        CustomerProfileResponse.fromJson(response),
+      );
+    } catch (error) {
+      return ApiFailure<CustomerProfileResponse>(
+        GlobalErrorHandler.toUserMessage(error),
+      );
+    }
+  }
+
+  Future<ApiResult<CustomerProfileResponse>> updateProfile({
+    String? name,
+    String? email,
+  }) async {
+    try {
+      final accessToken = await _storage.getAccessToken();
+      final body = <String, dynamic>{};
+      if (name != null) body['name'] = name;
+      if (email != null) body['email'] = email;
+
+      final response = await _apiClient.put(
+        ApiEndpoints.profile,
+        body: body,
+        accessToken: accessToken,
+      );
+      return ApiSuccess<CustomerProfileResponse>(
+        CustomerProfileResponse.fromJson(response),
+      );
+    } catch (error) {
+      return ApiFailure<CustomerProfileResponse>(
+        GlobalErrorHandler.toUserMessage(error),
+      );
     }
   }
 

@@ -1,26 +1,26 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shop_and_drive/core/di/app_services.dart';
 import 'package:shop_and_drive/features/product/data/product_repository.dart';
-import 'package:shop_and_drive/models/catalog_product.dart';
+import 'package:shop_and_drive/models/api_models.dart';
 
 enum ProductStatus { initial, loading, success, failure }
 
 class ProductState {
   const ProductState({
     this.status = ProductStatus.initial,
-    this.products = const <CatalogProduct>[],
+    this.products = const <ProductResponse>[],
     this.errorMessage,
   });
 
   final ProductStatus status;
-  final List<CatalogProduct> products;
+  final List<ProductResponse> products;
   final String? errorMessage;
 
   bool get isLoading => status == ProductStatus.loading;
 
   ProductState copyWith({
     ProductStatus? status,
-    List<CatalogProduct>? products,
+    List<ProductResponse>? products,
     String? errorMessage,
   }) {
     return ProductState(

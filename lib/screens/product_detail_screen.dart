@@ -2,17 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shop_and_drive/components/layout/app_page_scaffold.dart';
 import 'package:shop_and_drive/core/theme/app_theme.dart';
+import 'package:shop_and_drive/utils/toast.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   const ProductDetailScreen({
     super.key,
-    required this.name,
-    required this.category,
-    required this.price,
-    required this.imageUrl,
-    required this.rating,
+    this.productId,
+    this.name = 'Produk',
+    this.category = 'Sparepart',
+    this.price = 850000,
+    this.imageUrl = '',
+    this.rating = 4.5,
   });
 
+  final String? productId;
   final String name;
   final String category;
   final int price;
@@ -131,6 +134,208 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   Text(
                     'per unit',
                     style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Description
+                  const Text(
+                    'Deskripsi Produk',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFE8EBF1)),
+                    ),
+                    child: const Text(
+                      'Produk original berkualitas tinggi dengan garansi resmi. '
+                      'Cocok untuk berbagai jenis kendaraan. Material premium dengan '
+                      'daya tahan maksimal. Diproduksi dengan standar industri terbaru '
+                      'untuk performa optimal kendaraan Anda.\n\n'
+                      'Fitur Unggulan:\n'
+                      '• Material berkualitas tinggi\n'
+                      '• Tahan lama dan awet\n'
+                      '• Mudah dipasang\n'
+                      '• Garansi resmi 6 bulan\n'
+                      '• Kompatibel dengan berbagai tipe kendaraan',
+                      style: TextStyle(fontSize: 13, height: 1.6, color: AppTheme.textSecondary),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Specifications
+                  const Text(
+                    'Spesifikasi',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFE8EBF1)),
+                    ),
+                    child: Column(
+                      children: const [
+                        _SpecRow(label: 'Kategori', value: 'Sparepart'),
+                        _SpecRow(label: 'Berat', value: '1.5 kg'),
+                        _SpecRow(label: 'Dimensi', value: '30 x 20 x 10 cm'),
+                        _SpecRow(label: 'Material', value: 'Ceramic Composite'),
+                        _SpecRow(label: 'Garansi', value: '6 Bulan'),
+                        _SpecRow(label: 'Stok', value: 'Tersedia'),
+                        _SpecRow(label: 'Pengiriman', value: '1-3 Hari Kerja', isLast: true),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Seller Info
+                  const Text(
+                    'Informasi Penjual',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFE8EBF1)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: AppTheme.accent,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(Icons.store_rounded, color: AppTheme.primary, size: 28),
+                        ),
+                        const SizedBox(width: 14),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('AutoCare Official Store', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                              SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Icon(Icons.verified_rounded, size: 16, color: AppTheme.secondary),
+                                  SizedBox(width: 4),
+                                  Text('Verified Seller', style: TextStyle(fontSize: 12, color: AppTheme.secondary, fontWeight: FontWeight.w600)),
+                                  SizedBox(width: 12),
+                                  Icon(Icons.star_rounded, size: 14, color: AppTheme.secondary),
+                                  SizedBox(width: 2),
+                                  Text('4.8 (2.3rb)', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        FilledButton(
+                          onPressed: () => showToast(context, 'Membuka halaman AutoCare Official Store'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppTheme.accent,
+                            foregroundColor: AppTheme.primary,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          child: const Text('Kunjungi', style: TextStyle(fontWeight: FontWeight.w600)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Reviews Section
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Ulasan Pembeli',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      TextButton(
+                        onPressed: () => showToast(context, 'Menampilkan semua ulasan (128)'),
+                        child: Text('Lihat Semua', style: TextStyle(fontSize: 13, color: AppTheme.primary, fontWeight: FontWeight.w600)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFE8EBF1)),
+                    ),
+                    child: Column(
+                      children: [
+                        // Review Summary
+                        Row(
+                          children: [
+                            Column(
+                              children: [
+                                Text(
+                                  widget.rating.toStringAsFixed(1),
+                                  style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: List.generate(5, (i) => Icon(
+                                    i < widget.rating.floor() ? Icons.star_rounded : Icons.star_outline_rounded,
+                                    size: 14, color: AppTheme.secondary,
+                                  )),
+                                ),
+                                const SizedBox(height: 4),
+                                Text('128 Ulasan', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                              ],
+                            ),
+                            const SizedBox(width: 24),
+                            Expanded(
+                              child: Column(
+                                children: [
+                                  _RatingBar(stars: 5, count: 98, total: 128),
+                                  _RatingBar(stars: 4, count: 22, total: 128),
+                                  _RatingBar(stars: 3, count: 5, total: 128),
+                                  _RatingBar(stars: 2, count: 2, total: 128),
+                                  _RatingBar(stars: 1, count: 1, total: 128),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        const Divider(),
+                        const SizedBox(height: 12),
+                        // Individual Reviews
+                        const _ReviewItem(
+                          name: 'Budi Santoso',
+                          date: '2 hari lalu',
+                          rating: 5,
+                          comment: 'Produk original, packing rapi, pengiriman cepat. Sangat recommended!',
+                          avatar: 'B',
+                        ),
+                        const _ReviewItem(
+                          name: 'Siti Rahayu',
+                          date: '5 hari lalu',
+                          rating: 4,
+                          comment: 'Kualitas bagus, sesuai deskripsi. Hanya pengiriman agak lama.',
+                          avatar: 'S',
+                          isLast: true,
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 24),
 
@@ -425,6 +630,121 @@ class _SummaryRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _SpecRow extends StatelessWidget {
+  const _SpecRow({required this.label, required this.value, this.isLast = false});
+  final String label;
+  final String value;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: isLast ? 0 : 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(label, style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+          ),
+          Expanded(
+            child: Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RatingBar extends StatelessWidget {
+  const _RatingBar({required this.stars, required this.count, required this.total});
+  final int stars;
+  final int count;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    final ratio = count / total;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 28,
+            child: Text('$stars★', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+          ),
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: ratio,
+                minHeight: 6,
+                backgroundColor: const Color(0xFFF0F0F0),
+                valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.secondary),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(width: 24, child: Text('$count', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary))),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReviewItem extends StatelessWidget {
+  const _ReviewItem({
+    required this.name,
+    required this.date,
+    required this.rating,
+    required this.comment,
+    required this.avatar,
+    this.isLast = false,
+  });
+  final String name;
+  final String date;
+  final int rating;
+  final String comment;
+  final String avatar;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: isLast ? 0 : 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: AppTheme.accent,
+            child: Text(avatar, style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary, fontSize: 14)),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                    const SizedBox(width: 8),
+                    ...List.generate(rating, (_) => const Icon(Icons.star_rounded, size: 12, color: AppTheme.secondary)),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(date, style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                const SizedBox(height: 4),
+                Text(comment, style: const TextStyle(fontSize: 13, height: 1.4)),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

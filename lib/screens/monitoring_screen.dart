@@ -2,157 +2,156 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:shop_and_drive/components/layout/app_page_scaffold.dart';
+import 'package:shop_and_drive/core/di/app_services.dart';
 import 'package:shop_and_drive/core/theme/app_theme.dart';
+import 'package:shop_and_drive/models/api_models.dart';
 
-class MonitoringScreen extends StatelessWidget {
+class MonitoringScreen extends StatefulWidget {
   const MonitoringScreen({super.key});
+
+  @override
+  State<MonitoringScreen> createState() => _MonitoringScreenState();
+}
+
+class _MonitoringScreenState extends State<MonitoringScreen> {
+  TrackingResponse? _tracking;
+  bool _loading = true;
 
   static const _currentLocation = LatLng(-8.6502, 116.3249);
 
   static const _workshops = [
-    _Workshop(
-      name: 'Bengkel Prima Motor',
-      address: 'Jl. Raya Mataram No. 12',
-      location: LatLng(-8.6489, 116.3160),
-      etaMinutes: 9,
-    ),
-    _Workshop(
-      name: 'Bengkel Nusantara Service',
-      address: 'Jl. Ahmad Yani No. 33',
-      location: LatLng(-8.6625, 116.3298),
-      etaMinutes: 14,
-    ),
-    _Workshop(
-      name: 'Bengkel Sahabat Mobil',
-      address: 'Jl. Sriwijaya No. 20',
-      location: LatLng(-8.6403, 116.3387),
-      etaMinutes: 16,
-    ),
-    _Workshop(
-      name: 'AutoCare Home Service Hub',
-      address: 'Jl. Udayana No. 88',
-      location: LatLng(-8.6571, 116.3022),
-      etaMinutes: 21,
-    ),
+    _Workshop(name: 'Bengkel Prima Motor', address: 'Jl. Raya Mataram No. 12',
+      location: LatLng(-8.6489, 116.3160), etaMinutes: 9),
+    _Workshop(name: 'Bengkel Nusantara Service', address: 'Jl. Ahmad Yani No. 33',
+      location: LatLng(-8.6625, 116.3298), etaMinutes: 14),
+    _Workshop(name: 'Bengkel Sahabat Mobil', address: 'Jl. Sriwijaya No. 20',
+      location: LatLng(-8.6403, 116.3387), etaMinutes: 16),
+    _Workshop(name: 'AutoCare Home Service Hub', address: 'Jl. Udayana No. 88',
+      location: LatLng(-8.6571, 116.3022), etaMinutes: 21),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTracking();
+  }
+
+  Future<void> _loadTracking() async {
+    // Try to get tracking from latest order; fall back to static data
+    try {
+      final ordersResult = await AppServices.orderRepository.fetchOrders();
+      String? orderId;
+      ordersResult.when(success: (orders) {
+        if (orders.isNotEmpty) orderId = orders.first.id;
+      }, failure: (_) {});
+
+      if (orderId != null) {
+        final result = await AppServices.trackingRepository.fetchTracking(orderId!);
+        if (mounted) {
+          result.when(
+            success: (tracking) => setState(() { _tracking = tracking; _loading = false; }),
+            failure: (_) => setState(() => _loading = false),
+          );
+        }
+        return;
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _loading = false);
+  }
 
   List<_WorkshopDistance> _sortedByDistance() {
     const distance = Distance();
     final ranked = _workshops
-        .map((w) => _WorkshopDistance(
-              workshop: w,
-              km: distance.as(LengthUnit.Kilometer, _currentLocation, w.location),
-            ))
+        .map((w) => _WorkshopDistance(workshop: w, km: distance.as(LengthUnit.Kilometer, _currentLocation, w.location)))
         .toList();
     ranked.sort((a, b) => a.km.compareTo(b.km));
     return ranked;
+  }
+
+  List<LatLng> _buildTechRoute(_WorkshopDistance nearest) {
+    return [
+      nearest.workshop.location,
+      LatLng((nearest.workshop.location.latitude + _currentLocation.latitude) / 2,
+          nearest.workshop.location.longitude),
+      LatLng(_currentLocation.latitude,
+          (nearest.workshop.location.longitude + _currentLocation.longitude) / 2),
+      _currentLocation,
+    ];
   }
 
   @override
   Widget build(BuildContext context) {
     final rankedWorkshops = _sortedByDistance();
     final nearest = rankedWorkshops.first;
-
-    final techRoute = [
-      nearest.workshop.location,
-      LatLng(
-        (nearest.workshop.location.latitude + _currentLocation.latitude) / 2,
-        nearest.workshop.location.longitude,
-      ),
-      LatLng(
-        _currentLocation.latitude,
-        (nearest.workshop.location.longitude + _currentLocation.longitude) / 2,
-      ),
-      _currentLocation,
-    ];
+    final techRoute = _buildTechRoute(nearest);
     final technicianLocation = techRoute[2];
 
     return AppPageScaffold(
       title: 'Monitoring Bengkel',
       currentIndex: 2,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: SizedBox(
-                height: 280,
-                child: FlutterMap(
-                  options: const MapOptions(
-                    initialCenter: _currentLocation,
-                    initialZoom: 13.8,
-                    interactionOptions: InteractionOptions(flags: InteractiveFlag.all),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+          : SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: SizedBox(
+                      height: 280,
+                      child: FlutterMap(
+                        options: const MapOptions(
+                          initialCenter: _currentLocation,
+                          initialZoom: 13.8,
+                          interactionOptions: InteractionOptions(flags: InteractiveFlag.all),
+                        ),
+                        children: [
+                          TileLayer(
+                            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                            userAgentPackageName: 'shop_and_drive',
+                          ),
+                          PolylineLayer(
+                            polylines: [
+                              Polyline(points: techRoute, color: AppTheme.secondary, strokeWidth: 4),
+                            ],
+                          ),
+                          MarkerLayer(
+                            markers: [
+                              Marker(
+                                point: _currentLocation,
+                                width: 46, height: 46,
+                                child: const _MapPin(icon: Icons.home_rounded, color: AppTheme.primary),
+                              ),
+                              ...rankedWorkshops.map(
+                                (item) => Marker(
+                                  point: item.workshop.location,
+                                  width: 42, height: 42,
+                                  child: const _MapPin(icon: Icons.car_repair_rounded, color: AppTheme.secondary),
+                                ),
+                              ),
+                              Marker(
+                                point: technicianLocation,
+                                width: 48, height: 48,
+                                child: const _MapPin(icon: Icons.delivery_dining_rounded, color: Color(0xFF264653)),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  children: [
-                    TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'shop_and_drive',
-                    ),
-                    PolylineLayer(
-                      polylines: [
-                        Polyline(
-                          points: techRoute,
-                          color: AppTheme.secondary,
-                          strokeWidth: 4,
-                        ),
-                      ],
-                    ),
-                    MarkerLayer(
-                      markers: [
-                        Marker(
-                          point: _currentLocation,
-                          width: 46,
-                          height: 46,
-                          child: const _MapPin(
-                            icon: Icons.home_rounded,
-                            color: AppTheme.primary,
-                          ),
-                        ),
-                        ...rankedWorkshops.map(
-                          (item) => Marker(
-                            point: item.workshop.location,
-                            width: 42,
-                            height: 42,
-                            child: const _MapPin(
-                              icon: Icons.car_repair_rounded,
-                              color: AppTheme.secondary,
-                            ),
-                          ),
-                        ),
-                        Marker(
-                          point: technicianLocation,
-                          width: 48,
-                          height: 48,
-                          child: _MapPin(
-                            icon: Icons.delivery_dining_rounded,
-                            color: const Color(0xFF264653),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                  const SizedBox(height: 8),
+                  Text('Map data: OpenStreetMap', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                  const SizedBox(height: 18),
+                  const Text('Bengkel Terdekat', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 10),
+                  ...rankedWorkshops.take(3).map((item) => _WorkshopCard(item: item)),
+                  const SizedBox(height: 14),
+                  _HomeServiceProgressCard(nearest: nearest, tracking: _tracking),
+                ],
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Map data: OpenStreetMap',
-              style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
-            ),
-            const SizedBox(height: 18),
-            const Text(
-              'Bengkel Terdekat',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 10),
-            ...rankedWorkshops.take(3).map((item) => _WorkshopCard(item: item)),
-            const SizedBox(height: 14),
-            _HomeServiceProgressCard(nearest: nearest),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -166,16 +165,9 @@ class _MapPin extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
+        color: color, shape: BoxShape.circle,
         border: Border.all(color: Colors.white, width: 2),
-        boxShadow: const [
-          BoxShadow(
-            color: Color.fromARGB(61, 0, 0, 0),
-            blurRadius: 6,
-            offset: Offset(0, 3),
-          ),
-        ],
+        boxShadow: const [BoxShadow(color: Color.fromARGB(61, 0, 0, 0), blurRadius: 6, offset: Offset(0, 3))],
       ),
       child: Icon(icon, color: Colors.white, size: 20),
     );
@@ -192,61 +184,28 @@ class _WorkshopCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        color: Colors.white, borderRadius: BorderRadius.circular(14),
         border: Border.all(color: const Color(0xFFE8EBF1)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6, offset: const Offset(0, 2))],
       ),
       child: Row(
         children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: const BoxDecoration(
-              color: AppTheme.accent,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.garage_rounded, color: AppTheme.primary),
-          ),
+          Container(width: 42, height: 42,
+            decoration: const BoxDecoration(color: AppTheme.accent, shape: BoxShape.circle),
+            child: const Icon(Icons.garage_rounded, color: AppTheme.primary)),
           const SizedBox(width: 10),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.workshop.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  item.workshop.address,
-                  style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-                ),
-              ],
-            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(item.workshop.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 2),
+              Text(item.workshop.address, style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+            ]),
           ),
           const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '${item.km.toStringAsFixed(1)} km',
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-              Text(
-                '${item.workshop.etaMinutes} min',
-                style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-              ),
-            ],
-          ),
+          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            Text('${item.km.toStringAsFixed(1)} km', style: const TextStyle(fontWeight: FontWeight.w700)),
+            Text('${item.workshop.etaMinutes} min', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+          ]),
         ],
       ),
     );
@@ -254,66 +213,71 @@ class _WorkshopCard extends StatelessWidget {
 }
 
 class _HomeServiceProgressCard extends StatelessWidget {
-  const _HomeServiceProgressCard({required this.nearest});
+  const _HomeServiceProgressCard({required this.nearest, this.tracking});
   final _WorkshopDistance nearest;
+  final TrackingResponse? tracking;
 
   @override
   Widget build(BuildContext context) {
+    final steps = tracking?.history != null && tracking!.history!.isNotEmpty
+        ? tracking!.history!.map((h) => _TimelineStepData(
+              isDone: h.status == 'completed',
+              title: h.status ?? h.description ?? 'Update',
+              subtitle: h.timestamp ?? '',
+              isLast: false,
+            )).toList()
+        : null;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        color: Colors.white, borderRadius: BorderRadius.circular(14),
         border: Border.all(color: const Color(0xFFE8EBF1)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Monitoring Perjalanan Home Service',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Teknisi berangkat dari ${nearest.workshop.name}',
-            style: TextStyle(color: AppTheme.textSecondary),
-          ),
-          const SizedBox(height: 12),
-          const _TimelineStep(
-            isDone: true,
-            title: 'Order diterima bengkel',
-            subtitle: '09:12',
-          ),
-          const _TimelineStep(
-            isDone: true,
-            title: 'Teknisi berangkat',
-            subtitle: '09:18',
-          ),
-          _TimelineStep(
-            isDone: false,
-            title: 'Dalam perjalanan (ETA ${nearest.workshop.etaMinutes} menit)',
-            subtitle: 'Live tracking aktif',
-          ),
-          const _TimelineStep(
-            isDone: false,
-            title: 'Tiba dan mulai pengecekan',
-            subtitle: 'Menunggu',
-            isLast: true,
-          ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('Monitoring Perjalanan Home Service', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 4),
+        Text('Teknisi berangkat dari ${nearest.workshop.name}', style: TextStyle(color: AppTheme.textSecondary)),
+        const SizedBox(height: 12),
+        if (steps != null)
+          ...steps.map((s) => _TimelineStep(isDone: s.isDone, title: s.title, subtitle: s.subtitle, isLast: s.isLast)),
+        if (steps == null) ...[
+          const _TimelineStep(isDone: true, title: 'Order diterima bengkel', subtitle: '09:12'),
+          const _TimelineStep(isDone: true, title: 'Teknisi berangkat', subtitle: '09:18'),
+          _TimelineStep(isDone: false, title: 'Dalam perjalanan (ETA ${nearest.workshop.etaMinutes} menit)', subtitle: 'Live tracking aktif'),
+          const _TimelineStep(isDone: false, title: 'Tiba dan mulai pengecekan', subtitle: 'Menunggu', isLast: true),
         ],
-      ),
+        if (tracking != null && tracking!.latitude != null && tracking!.longitude != null) ...[
+          const SizedBox(height: 12),
+          const Divider(),
+          const SizedBox(height: 8),
+          Row(children: [
+            const Icon(Icons.location_on_rounded, size: 16, color: AppTheme.primary),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(
+                'Posisi terkini: ${tracking!.latitude!.toStringAsFixed(4)}, ${tracking!.longitude!.toStringAsFixed(4)}',
+                style: const TextStyle(fontSize: 12, color: AppTheme.primary),
+              ),
+            ),
+          ]),
+        ],
+      ]),
     );
   }
 }
 
+class _TimelineStepData {
+  final bool isDone;
+  final String title;
+  final String subtitle;
+  final bool isLast;
+  const _TimelineStepData({required this.isDone, required this.title, required this.subtitle, this.isLast = false});
+}
+
 class _TimelineStep extends StatelessWidget {
-  const _TimelineStep({
-    required this.isDone,
-    required this.title,
-    required this.subtitle,
-    this.isLast = false,
-  });
+  const _TimelineStep({required this.isDone, required this.title, required this.subtitle, this.isLast = false});
   final bool isDone;
   final String title;
   final String subtitle;
@@ -325,31 +289,18 @@ class _TimelineStep extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Column(
-          children: [
-            Container(
-              width: 12,
-              height: 12,
-              decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
-            ),
-            if (!isLast)
-              Container(width: 2, height: 28, color: const Color(0xFFD0D7E2)),
-          ],
-        ),
+        Column(children: [
+          Container(width: 12, height: 12, decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle)),
+          if (!isLast) Container(width: 2, height: 28, color: const Color(0xFFD0D7E2)),
+        ]),
         const SizedBox(width: 10),
         Expanded(
           child: Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-                Text(
-                  subtitle,
-                  style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-                ),
-              ],
-            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+              Text(subtitle, style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+            ]),
           ),
         ),
       ],
@@ -358,12 +309,7 @@ class _TimelineStep extends StatelessWidget {
 }
 
 class _Workshop {
-  const _Workshop({
-    required this.name,
-    required this.address,
-    required this.location,
-    required this.etaMinutes,
-  });
+  const _Workshop({required this.name, required this.address, required this.location, required this.etaMinutes});
   final String name;
   final String address;
   final LatLng location;

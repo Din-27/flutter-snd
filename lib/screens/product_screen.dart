@@ -8,10 +8,11 @@ import 'package:shop_and_drive/components/product/product_grid_card.dart';
 import 'package:shop_and_drive/components/product/product_list_card.dart';
 import 'package:shop_and_drive/core/di/app_services.dart';
 import 'package:shop_and_drive/features/product/presentation/providers/product_providers.dart';
-import 'package:shop_and_drive/models/catalog_product.dart';
+import 'package:shop_and_drive/models/api_models.dart';
 
 class ProductScreen extends StatefulWidget {
-  const ProductScreen({super.key});
+  final String? initialCategory;
+  const ProductScreen({super.key, this.initialCategory});
 
   @override
   State<ProductScreen> createState() => _ProductScreenState();
@@ -20,7 +21,7 @@ class ProductScreen extends StatefulWidget {
 class _ProductScreenState extends State<ProductScreen> {
   static const _chips = ['Semua', 'Sparepart', 'Oli Mesin', 'Aksesoris'];
 
-  String _selectedChip = _chips.first;
+  late String _selectedChip;
   bool _isGridLayout = true;
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
@@ -29,6 +30,7 @@ class _ProductScreenState extends State<ProductScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedChip = widget.initialCategory ?? _chips.first;
     _productCubit = ProductCubit(AppServices.productRepository);
     _productCubit.loadProducts();
   }
@@ -40,7 +42,7 @@ class _ProductScreenState extends State<ProductScreen> {
     super.dispose();
   }
 
-  List<CatalogProduct> _filteredProducts(List<CatalogProduct> source) {
+  List<ProductResponse> _filteredProducts(List<ProductResponse> source) {
     var filtered = source;
     if (_selectedChip != 'Semua') {
       filtered = filtered.where((p) => p.category == _selectedChip).toList();
@@ -63,13 +65,8 @@ class _ProductScreenState extends State<ProductScreen> {
     return 'Rp ${buffer.toString().split('').reversed.join()}';
   }
 
-  void _openDetail(CatalogProduct product) {
-    final encodedName = Uri.encodeComponent(product.name);
-    final encodedCategory = Uri.encodeComponent(product.category);
-    final encodedImage = Uri.encodeComponent(product.imageUrl);
-    context.go(
-      '/detail?name=$encodedName&category=$encodedCategory&price=${product.price}&image=$encodedImage&rating=${product.rating}',
-    );
+  void _openDetail(ProductResponse product) {
+    context.go('/detail/${product.id}');
   }
 
   @override

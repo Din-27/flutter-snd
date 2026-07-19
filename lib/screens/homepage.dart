@@ -3,38 +3,31 @@ import 'package:go_router/go_router.dart';
 import 'package:shop_and_drive/components/floating/floating_search_bar.dart';
 import 'package:shop_and_drive/components/layout/app_page_scaffold.dart';
 import 'package:shop_and_drive/components/swiper/swiper.dart';
+import 'package:shop_and_drive/core/di/app_services.dart';
 import 'package:shop_and_drive/core/theme/app_theme.dart';
+import 'package:shop_and_drive/models/api_models.dart';
 import 'package:shop_and_drive/utils/greetings.dart';
+import 'package:shop_and_drive/utils/toast.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
-  static const _bannerItems = [
-    BannerSwiperItem(
-      imageUrl: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?q=80&w=1200&auto=format&fit=crop',
-      title: 'Promo Servis Bulanan',
-      subtitle: 'Diskon hingga 25% minggu ini',
-    ),
-    BannerSwiperItem(
-      imageUrl: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?q=80&w=1200&auto=format&fit=crop',
-      title: 'Free Checkup Kendaraan',
-      subtitle: 'Untuk booking sebelum Jumat',
-    ),
-    BannerSwiperItem(
-      imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1200&auto=format&fit=crop',
-      title: 'Paket Mudik Aman',
-      subtitle: 'Mulai dari Rp 299.000',
-    ),
-  ];
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  List<BannerResponse> _banners = [];
+  bool _bannersLoading = true;
 
   static const _services = [
-    _ServiceItem(icon: Icons.car_repair_rounded, label: 'Service', route: '/monitoring'),
-    _ServiceItem(icon: Icons.oil_barrel_rounded, label: 'Ganti Oli', route: '/products'),
-    _ServiceItem(icon: Icons.ac_unit_rounded, label: 'AC Mobil', route: '/products'),
-    _ServiceItem(icon: Icons.build_circle_rounded, label: 'Sparepart', route: '/products'),
-    _ServiceItem(icon: Icons.local_car_wash_rounded, label: 'Cuci Mobil', route: '/products'),
-    _ServiceItem(icon: Icons.tire_repair_rounded, label: 'Ban & Velg', route: '/products'),
-    _ServiceItem(icon: Icons.electrical_services_rounded, label: 'Aki & Listrik', route: '/products'),
+    _ServiceItem(icon: Icons.car_repair_rounded, label: 'Service', route: '/workshop-map'),
+    _ServiceItem(icon: Icons.oil_barrel_rounded, label: 'Ganti Oli', route: '/products', category: 'Oli Mesin'),
+    _ServiceItem(icon: Icons.ac_unit_rounded, label: 'AC Mobil', route: '/products', category: 'Aksesoris'),
+    _ServiceItem(icon: Icons.build_circle_rounded, label: 'Sparepart', route: '/products', category: 'Sparepart'),
+    _ServiceItem(icon: Icons.local_car_wash_rounded, label: 'Cuci Mobil', route: '/products', category: 'Aksesoris'),
+    _ServiceItem(icon: Icons.tire_repair_rounded, label: 'Ban & Velg', route: '/products', category: 'Aksesoris'),
+    _ServiceItem(icon: Icons.electrical_services_rounded, label: 'Aki & Listrik', route: '/products', category: 'Aksesoris'),
     _ServiceItem(icon: Icons.miscellaneous_services_rounded, label: 'Lainnya', route: '/products'),
   ];
 
@@ -70,6 +63,64 @@ class HomeScreen extends StatelessWidget {
     _ArticleItem(title: 'Cara Memilih Oli Mesin yang Tepat', category: 'Review', readTime: '4 min',
       imageUrl: 'https://images.unsplash.com/photo-1530046339160-ce3e530c7d2f?q=80&w=400&auto=format&fit=crop'),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBanners();
+  }
+
+  Future<void> _loadBanners() async {
+    final result = await AppServices.promoRepository.fetchBanners();
+    if (mounted) {
+      result.when(
+        success: (banners) => setState(() { _banners = banners; _bannersLoading = false; }),
+        failure: (_) => setState(() => _bannersLoading = false),
+      );
+    }
+  }
+
+  List<BannerSwiperItem> get _bannerItems {
+    if (_banners.isNotEmpty) {
+      return _banners.map((b) => BannerSwiperItem(
+        imageUrl: b.imageUrl,
+        title: b.title,
+        subtitle: b.subtitle,
+      )).toList();
+    }
+    // fallback dummy
+    return const [
+      BannerSwiperItem(
+        imageUrl: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?q=80&w=1200&auto=format&fit=crop',
+        title: 'Promo Servis Bulanan',
+        subtitle: 'Diskon hingga 25% minggu ini',
+      ),
+      BannerSwiperItem(
+        imageUrl: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?q=80&w=1200&auto=format&fit=crop',
+        title: 'Free Checkup Kendaraan',
+        subtitle: 'Untuk booking sebelum Jumat',
+      ),
+      BannerSwiperItem(
+        imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1200&auto=format&fit=crop',
+        title: 'Paket Mudik Aman',
+        subtitle: 'Mulai dari Rp 299.000',
+      ),
+    ];
+  }
+
+  Widget _buildBannerSkeleton() {
+    return Container(
+      height: 160,
+      margin: const EdgeInsets.only(bottom: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F0F0),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: const Center(
+        child: CircularProgressIndicator(color: AppTheme.primary),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -128,13 +179,28 @@ class HomeScreen extends StatelessWidget {
             // Service Menu Grid (Grab-style)
             const _ServiceMenuGrid(services: _services),
             const SizedBox(height: 20),
-            // Banner Carousel
-            const AppSwiper.banner(banners: _bannerItems),
+            // Banner Carousel (from API)
+            if (_bannersLoading)
+              _buildBannerSkeleton()
+            else
+              AppSwiper.banner(
+                banners: _bannerItems,
+                onBannerTap: (item) => showToast(context, 'Promo: ${item.title ?? "Promo Spesial"}'),
+              ),
             const SizedBox(height: 24),
             // Products
             _SectionHeader(title: 'Produk Pilihan', onTap: () => context.go('/products')),
             const SizedBox(height: 12),
-            const AppSwiper.product(products: _productItems),
+            AppSwiper.product(
+              products: _productItems,
+              onProductTap: (item) {
+                final price = int.tryParse(item.price.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+                final encodedName = Uri.encodeComponent(item.name);
+                final encodedCategory = Uri.encodeComponent(item.category);
+                final encodedImage = Uri.encodeComponent(item.imageUrl);
+                context.go('/detail?name=$encodedName&category=$encodedCategory&price=$price&image=$encodedImage&rating=${item.rating}');
+              },
+            ),
             const SizedBox(height: 24),
             // Promo
             _SectionHeader(title: 'Promo Spesial', onTap: () => context.go('/promo')),
@@ -269,7 +335,13 @@ class _ServiceIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => context.go(service.route),
+      onTap: () {
+        if (service.category != null) {
+          context.go('${service.route}?category=${Uri.encodeComponent(service.category!)}');
+        } else {
+          context.go(service.route);
+        }
+      },
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -493,10 +565,11 @@ class _ArticleCard extends StatelessWidget {
 // ==================== Data Models ====================
 
 class _ServiceItem {
-  const _ServiceItem({required this.icon, required this.label, required this.route});
+  const _ServiceItem({required this.icon, required this.label, required this.route, this.category});
   final IconData icon;
   final String label;
   final String route;
+  final String? category;
 }
 
 class _PromoItem {

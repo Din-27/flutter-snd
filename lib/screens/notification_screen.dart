@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shop_and_drive/components/layout/app_page_scaffold.dart';
 import 'package:shop_and_drive/components/notification/notification_item_tile.dart';
+import 'package:shop_and_drive/utils/toast.dart';
 
 class NotificationScreen extends StatelessWidget {
   const NotificationScreen({super.key});
@@ -42,6 +44,15 @@ class NotificationScreen extends StatelessWidget {
             body: item.body,
             time: item.time,
             unread: item.unread,
+            onTap: () {
+              if (index == 0) {
+                context.go('/workshop-map');
+              } else if (index == 1) {
+                context.go('/transaction-detail');
+              } else {
+                showToast(context, 'Promo: ${item.title}');
+              }
+            },
           );
         },
       ),
